@@ -23,7 +23,25 @@ func (t *ListIncidentsTool) Name() string {
 }
 
 func (t *ListIncidentsTool) Description() string {
-	return "List incidents from incident.io with optional filters"
+	return `List incidents from incident.io with optional filtering by status and severity.
+
+USAGE WORKFLOW:
+1. To filter by severity, first call 'list_severities' to get available severity IDs
+2. Use the severity ID (not the name) in the 'severity' parameter
+3. Multiple severity IDs can be provided to match any of them (OR logic)
+4. Status filters can be combined with severity filters
+
+PARAMETERS:
+- page_size: Number of results (default 25, max 250). Set to 0 or omit for auto-pagination.
+- status: Array of status values (triage, active, resolved, closed)
+- severity: Array of severity IDs (e.g., ["01HXYZ..."]) - Use list_severities first to get valid IDs
+
+EXAMPLES:
+- List all active incidents: {"status": ["active"]}
+- List critical incidents: First call list_severities, then use severity ID like {"severity": ["01HXYZ..."]}
+- List active high-severity incidents: {"status": ["active"], "severity": ["sev_1", "sev_2"]}
+
+IMPORTANT: Severity parameter requires severity IDs, not severity names. Always call list_severities first to discover available severity IDs.`
 }
 
 func (t *ListIncidentsTool) InputSchema() map[string]interface{} {
@@ -32,18 +50,18 @@ func (t *ListIncidentsTool) InputSchema() map[string]interface{} {
 		"properties": map[string]interface{}{
 			"page_size": map[string]interface{}{
 				"type":        "integer",
-				"description": "Number of results per page (max 250)",
+				"description": "Number of results per page (max 250, default 25). Set to 0 or omit for automatic pagination through all results.",
 				"default":     25,
 			},
 			"status": map[string]interface{}{
 				"type":        "array",
 				"items":       map[string]interface{}{"type": "string"},
-				"description": "Filter by incident status (e.g., triage, active, resolved, closed)",
+				"description": "Filter by incident status values. Valid values: triage, active, resolved, closed. Multiple values will match any of them (OR logic). Example: [\"active\", \"triage\"]",
 			},
 			"severity": map[string]interface{}{
 				"type":        "array",
 				"items":       map[string]interface{}{"type": "string"},
-				"description": "Filter by severity",
+				"description": "Filter by severity IDs (NOT severity names). IMPORTANT: Call 'list_severities' tool first to discover available severity IDs. Example: [\"sev_1\", \"sev_2\"] or [\"01HXYZ...\"]. Multiple IDs will match any of them (OR logic).",
 			},
 		},
 	}

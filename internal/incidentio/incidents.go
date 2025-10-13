@@ -40,7 +40,7 @@ func (c *Client) ListIncidents(opts *ListIncidentsOptions) (*ListIncidentsRespon
 			params.Add("status", status)
 		}
 		for _, severity := range opts.Severity {
-			params.Add("severity", severity)
+			params.Add("severity[one_of]", severity)
 		}
 
 		respBody, err := c.doRequest("GET", "/incidents", params, nil)
@@ -63,7 +63,7 @@ func (c *Client) ListIncidents(opts *ListIncidentsOptions) (*ListIncidentsRespon
 			baseParams.Add("status", status)
 		}
 		for _, severity := range opts.Severity {
-			baseParams.Add("severity", severity)
+			baseParams.Add("severity[one_of]", severity)
 		}
 	}
 
