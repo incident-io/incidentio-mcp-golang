@@ -22,7 +22,10 @@ func TestListWorkflows(t *testing.T) {
 					{
 						"id": "wf_123",
 						"name": "Test Workflow",
-						"trigger": "incident.created",
+						"trigger": {
+							"name": "incident.created",
+							"label": "Incident created"
+						},
 						"enabled": true,
 						"created_at": "2024-01-01T00:00:00Z",
 						"updated_at": "2024-01-01T00:00:00Z"
@@ -87,6 +90,9 @@ func TestListWorkflows(t *testing.T) {
 			if tt.expectedCount > 0 {
 				assertEqual(t, "wf_123", result.Workflows[0].ID)
 				assertEqual(t, "Test Workflow", result.Workflows[0].Name)
+				// Verify trigger is properly parsed as an object
+				assertEqual(t, "incident.created", result.Workflows[0].Trigger.Name)
+				assertEqual(t, "Incident created", result.Workflows[0].Trigger.Label)
 			}
 		})
 	}
@@ -107,9 +113,12 @@ func TestGetWorkflow(t *testing.T) {
 				"workflow": {
 					"id": "wf_123",
 					"name": "Test Workflow",
-					"trigger": "incident.created",
+					"trigger": {
+						"name": "incident.created",
+						"label": "Incident created"
+					},
 					"enabled": true,
-					"state": {"key": "value"},
+					"state": "active",
 					"created_at": "2024-01-01T00:00:00Z",
 					"updated_at": "2024-01-01T00:00:00Z"
 				}
@@ -147,9 +156,11 @@ func TestGetWorkflow(t *testing.T) {
 			assertNoError(t, err)
 			assertEqual(t, tt.workflowID, workflow.ID)
 			assertEqual(t, "Test Workflow", workflow.Name)
-			if workflow.State["key"] != "value" {
-				t.Error("expected state to contain key:value")
-			}
+			// Verify trigger is properly parsed as an object
+			assertEqual(t, "incident.created", workflow.Trigger.Name)
+			assertEqual(t, "Incident created", workflow.Trigger.Label)
+			// Verify state is a string
+			assertEqual(t, "active", workflow.State)
 		})
 	}
 }
@@ -174,8 +185,12 @@ func TestUpdateWorkflow(t *testing.T) {
 				"workflow": {
 					"id": "wf_123",
 					"name": "Updated Workflow",
-					"trigger": "incident.created",
+					"trigger": {
+						"name": "incident.created",
+						"label": "Incident created"
+					},
 					"enabled": false,
+					"state": "disabled",
 					"created_at": "2024-01-01T00:00:00Z",
 					"updated_at": "2024-01-02T00:00:00Z"
 				}
@@ -184,20 +199,21 @@ func TestUpdateWorkflow(t *testing.T) {
 			wantError:      false,
 		},
 		{
-			name:       "update workflow state",
+			name:       "enable workflow",
 			workflowID: "wf_123",
 			request: &UpdateWorkflowRequest{
-				State: map[string]interface{}{
-					"new_key": "new_value",
-				},
+				Enabled: boolPtr(true),
 			},
 			mockResponse: `{
 				"workflow": {
 					"id": "wf_123",
 					"name": "Test Workflow",
-					"trigger": "incident.created",
+					"trigger": {
+						"name": "incident.created",
+						"label": "Incident created"
+					},
 					"enabled": true,
-					"state": {"new_key": "new_value"},
+					"state": "active",
 					"created_at": "2024-01-01T00:00:00Z",
 					"updated_at": "2024-01-02T00:00:00Z"
 				}
@@ -239,6 +255,77 @@ func TestUpdateWorkflow(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestWorkflowTriggerObjectParsing is a regression test for bugs where:
+// 1. workflow.trigger was incorrectly typed as string instead of an object
+// 2. workflow.state was incorrectly typed as map[string]interface{} instead of string
+// The incident.io API returns:
+//   - trigger as: {"name": "...", "label": "..."}
+//   - state as: "active" | "disabled" | etc.
+// See: https://github.com/incident-io/incidentio-mcp-golang/pull/20
+func TestWorkflowTriggerObjectParsing(t *testing.T) {
+	// This test uses a real-world API response structure to ensure
+	// we correctly parse the trigger object and state string
+	mockResp := `{
+		"workflows": [
+			{
+				"id": "wf_oncall_123",
+				"name": "Notify on on-call change",
+				"trigger": {
+					"name": "schedule.currently-on-call-changed",
+					"label": "An On-call schedule shift changes"
+				},
+				"enabled": true,
+				"state": "active",
+				"created_at": "2024-01-01T00:00:00Z",
+				"updated_at": "2024-01-01T00:00:00Z"
+			},
+			{
+				"id": "wf_incident_456",
+				"name": "Auto-assign incident lead",
+				"trigger": {
+					"name": "incident.created",
+					"label": "An incident is created"
+				},
+				"enabled": false,
+				"state": "disabled",
+				"created_at": "2024-01-01T00:00:00Z",
+				"updated_at": "2024-01-01T00:00:00Z"
+			}
+		],
+		"pagination_info": {
+			"page_size": 25
+		}
+	}`
+
+	mockClient := &MockHTTPClient{
+		DoFunc: func(req *http.Request) (*http.Response, error) {
+			return mockResponse(http.StatusOK, mockResp), nil
+		},
+	}
+
+	client := NewTestClient(mockClient)
+	result, err := client.ListWorkflows(nil)
+
+	assertNoError(t, err)
+	if len(result.Workflows) != 2 {
+		t.Fatalf("expected 2 workflows, got %d", len(result.Workflows))
+	}
+
+	// Verify first workflow (on-call schedule, active)
+	wf1 := result.Workflows[0]
+	assertEqual(t, "wf_oncall_123", wf1.ID)
+	assertEqual(t, "schedule.currently-on-call-changed", wf1.Trigger.Name)
+	assertEqual(t, "An On-call schedule shift changes", wf1.Trigger.Label)
+	assertEqual(t, "active", wf1.State)
+
+	// Verify second workflow (incident created, disabled)
+	wf2 := result.Workflows[1]
+	assertEqual(t, "wf_incident_456", wf2.ID)
+	assertEqual(t, "incident.created", wf2.Trigger.Name)
+	assertEqual(t, "An incident is created", wf2.Trigger.Label)
+	assertEqual(t, "disabled", wf2.State)
 }
 
 // Helper function to create a bool pointer
