@@ -1,8 +1,20 @@
+# HTTP mode docker-compose configuration
+# For stdio mode, use: docker-compose run --rm -T mcp-server (without MCP_TRANSPORT)
 services:
   mcp-server:
     build: .
+    ports:
+      - "${MCP_PORT:-4211}:8080"
     environment:
       - INCIDENT_IO_API_KEY=${INCIDENT_IO_API_KEY}
       - INCIDENT_IO_BASE_URL=${INCIDENT_IO_BASE_URL:-https://api.incident.io/v2}
-    stdin_open: true
-    tty: false
+      # Set to "http" for HTTP mode, remove or set to "stdio" for stdio mode
+      - MCP_TRANSPORT=http
+      - MCP_PORT=8080
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
