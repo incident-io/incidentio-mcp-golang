@@ -27,5 +27,13 @@ COPY --from=builder /app/mcp-server .
 # Make binary executable
 RUN chmod +x ./mcp-server
 
+# Default port for HTTP mode (when enabled)
+# NOTE: Transport defaults to stdio for backwards compatibility
+# Set MCP_TRANSPORT=http to enable HTTP mode
+ENV MCP_PORT=8080
+
+# Expose the HTTP port (used when MCP_TRANSPORT=http)
+EXPOSE 8080
+
 # Set the entrypoint
 ENTRYPOINT ["./mcp-server"]

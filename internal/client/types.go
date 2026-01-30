@@ -150,16 +150,22 @@ type Action struct {
 	Assignee    *User      `json:"assignee,omitempty"`
 }
 
+// WorkflowTrigger represents a workflow trigger in incident.io
+type WorkflowTrigger struct {
+	Name  string `json:"name"`
+	Label string `json:"label"`
+}
+
 // Workflow represents a workflow in incident.io
 type Workflow struct {
-	ID        string                 `json:"id"`
-	Name      string                 `json:"name"`
-	Trigger   string                 `json:"trigger"`
-	Enabled   bool                   `json:"enabled"`
-	Runs      []WorkflowRun          `json:"runs,omitempty"`
-	State     map[string]interface{} `json:"state,omitempty"`
-	CreatedAt time.Time              `json:"created_at"`
-	UpdatedAt time.Time              `json:"updated_at"`
+	ID        string          `json:"id"`
+	Name      string          `json:"name"`
+	Trigger   WorkflowTrigger `json:"trigger"`
+	Enabled   bool            `json:"enabled"`
+	Runs      []WorkflowRun   `json:"runs,omitempty"`
+	State     string          `json:"state,omitempty"`
+	CreatedAt time.Time       `json:"created_at"`
+	UpdatedAt time.Time       `json:"updated_at"`
 }
 
 // WorkflowRun represents a workflow run

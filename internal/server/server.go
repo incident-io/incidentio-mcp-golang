@@ -5,26 +5,70 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
+	"net/http"
 	"os"
+	"sync"
 
 	"github.com/incident-io/incidentio-mcp-golang/internal/client"
 	"github.com/incident-io/incidentio-mcp-golang/internal/handlers"
 	"github.com/incident-io/incidentio-mcp-golang/pkg/mcp"
 )
 
+type TransportType string
+
+const (
+	TransportStdio TransportType = "stdio"
+	TransportHTTP  TransportType = "http"
+)
+
 type Server struct {
-	tools map[string]handlers.Handler
+	tools     map[string]Handler
+	transport TransportType
+	port      int
+	mu        sync.RWMutex
+}
+
+// Handler interface for tool handlers
+type Handler interface {
+	Name() string
+	Description() string
+	InputSchema() map[string]any
+	Execute(args map[string]any) (string, error)
+}
+
+type Config struct {
+	Transport TransportType
+	Port      int
 }
 
 func New() *Server {
+	return NewWithConfig(Config{Transport: TransportStdio})
+}
+
+func NewWithConfig(cfg Config) *Server {
+	if cfg.Port == 0 {
+		cfg.Port = 8080
+	}
 	return &Server{
-		tools: make(map[string]handlers.Handler),
+		tools:     make(map[string]Handler),
+		transport: cfg.Transport,
+		port:      cfg.Port,
 	}
 }
 
 func (s *Server) Start(ctx context.Context) error {
 	s.registerTools()
 
+	switch s.transport {
+	case TransportHTTP:
+		return s.startHTTP(ctx)
+	default:
+		return s.startStdio(ctx)
+	}
+}
+
+func (s *Server) startStdio(ctx context.Context) error {
 	encoder := json.NewEncoder(os.Stdout)
 	decoder := json.NewDecoder(os.Stdin)
 
@@ -48,10 +92,84 @@ func (s *Server) Start(ctx context.Context) error {
 
 			if response != nil {
 				if err := encoder.Encode(response); err != nil {
-					// Log encoding errors but continue processing
 					fmt.Fprintf(os.Stderr, "Failed to encode response: %v\n", err)
 				}
 			}
+		}
+	}
+}
+
+func (s *Server) startHTTP(ctx context.Context) error {
+	mux := http.NewServeMux()
+
+	// MCP endpoint - handles JSON-RPC over HTTP POST
+	mux.HandleFunc("/mcp", s.handleHTTPMCP)
+
+	// Health check endpoint
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "ok"}); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to encode status: %v\n", err)
+		}
+	})
+
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%d", s.port),
+		Handler: mux,
+	}
+
+	// Handle graceful shutdown
+	go func() {
+		<-ctx.Done()
+		log.Println("Shutting down HTTP server...")
+		if err := server.Shutdown(context.Background()); err != nil {
+			fmt.Fprintf(os.Stderr, "Error during shutdown: %v\n", err)
+		}
+	}()
+
+	log.Printf("Starting MCP HTTP server on port %d", s.port)
+	if err := server.ListenAndServe(); err != http.ErrServerClosed {
+		return fmt.Errorf("HTTP server error: %w", err)
+	}
+	return nil
+}
+
+func (s *Server) handleHTTPMCP(w http.ResponseWriter, r *http.Request) {
+	// Set CORS headers for Claude Code compatibility
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var msg mcp.Message
+	if err := json.NewDecoder(r.Body).Decode(&msg); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		if err := json.NewEncoder(w).Encode(s.createErrorResponse(nil, fmt.Errorf("invalid JSON: %w", err))); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to encode error response: %v\n", err)
+		}
+		return
+	}
+
+	response, err := s.handleMessage(&msg)
+	if err != nil {
+		response = s.createErrorResponse(msg.ID, err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if response != nil {
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to encode response: %v\n", err)
 		}
 	}
 }
@@ -60,7 +178,7 @@ func (s *Server) registerTools() {
 	// Initialize incident.io client
 	c, err := client.NewClient()
 	if err != nil {
-		// If client initialization fails, no tools are registered
+		log.Printf("Warning: Failed to initialize incident.io client: %v", err)
 		return
 	}
 
@@ -69,13 +187,16 @@ func (s *Server) registerTools() {
 	registry.RegisterAllTools(c)
 
 	// Copy tools from registry to server
-	s.tools = registry.GetTools()
+	s.mu.Lock()
+	for name, tool := range registry.GetTools() {
+		s.tools[name] = tool
+	}
+	s.mu.Unlock()
 }
 
 func (s *Server) handleMessage(msg *mcp.Message) (*mcp.Message, error) {
 	// Handle notifications (no ID means it's a notification)
 	if msg.ID == nil {
-		// Notifications don't require a response
 		return nil, nil
 	}
 
@@ -87,7 +208,6 @@ func (s *Server) handleMessage(msg *mcp.Message) (*mcp.Message, error) {
 	case "tools/call":
 		return s.handleToolCall(msg)
 	default:
-		// Return proper JSON-RPC error for unknown methods
 		return &mcp.Message{
 			Jsonrpc: "2.0",
 			ID:      msg.ID,
@@ -118,6 +238,9 @@ func (s *Server) handleInitialize(msg *mcp.Message) (*mcp.Message, error) {
 }
 
 func (s *Server) handleToolsList(msg *mcp.Message) (*mcp.Message, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	var toolsList []map[string]interface{}
 	for _, tool := range s.tools {
 		toolsList = append(toolsList, map[string]interface{}{
@@ -148,7 +271,10 @@ func (s *Server) handleToolCall(msg *mcp.Message) (*mcp.Message, error) {
 		return nil, fmt.Errorf("missing tool name")
 	}
 
+	s.mu.RLock()
 	tool, exists := s.tools[toolName]
+	s.mu.RUnlock()
+
 	if !exists {
 		return nil, fmt.Errorf("tool not found: %s", toolName)
 	}
