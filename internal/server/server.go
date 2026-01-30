@@ -33,8 +33,8 @@ type Server struct {
 type Handler interface {
 	Name() string
 	Description() string
-	InputSchema() map[string]interface{}
-	Execute(args map[string]interface{}) (string, error)
+	InputSchema() map[string]any
+	Execute(args map[string]any) (string, error)
 }
 
 type Config struct {
@@ -109,7 +109,9 @@ func (s *Server) startHTTP(ctx context.Context) error {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "ok"}); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to encode status: %v\n", err)
+		}
 	})
 
 	server := &http.Server{
@@ -121,7 +123,9 @@ func (s *Server) startHTTP(ctx context.Context) error {
 	go func() {
 		<-ctx.Done()
 		log.Println("Shutting down HTTP server...")
-		server.Shutdown(context.Background())
+		if err := server.Shutdown(context.Background()); err != nil {
+			fmt.Fprintf(os.Stderr, "Error during shutdown: %v\n", err)
+		}
 	}()
 
 	log.Printf("Starting MCP HTTP server on port %d", s.port)
@@ -151,7 +155,9 @@ func (s *Server) handleHTTPMCP(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&msg); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(s.createErrorResponse(nil, fmt.Errorf("invalid JSON: %w", err)))
+		if err := json.NewEncoder(w).Encode(s.createErrorResponse(nil, fmt.Errorf("invalid JSON: %w", err))); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to encode error response: %v\n", err)
+		}
 		return
 	}
 
@@ -162,7 +168,9 @@ func (s *Server) handleHTTPMCP(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if response != nil {
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to encode response: %v\n", err)
+		}
 	}
 }
 
