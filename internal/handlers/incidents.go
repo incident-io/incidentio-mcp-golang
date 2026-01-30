@@ -23,38 +23,42 @@ func (t *ListIncidentsTool) Name() string {
 }
 
 func (t *ListIncidentsTool) Description() string {
-	return "List incidents with server-side filtering. Returns paginated results - you MUST fetch ALL pages.\n\n" +
-		"CRITICAL PAGINATION RULE:\n" +
-		"If user asks to 'list all' or 'show all' incidents, you MUST paginate through ALL pages automatically.\n" +
-		"- Start: page_size=100 (optimal for efficiency)\n" +
-		"- If response has_more_results=true: IMMEDIATELY call list_incidents again with after cursor\n" +
-		"- Repeat until has_more_results=false\n" +
-		"- Only then provide the complete results to user\n" +
-		"DO NOT show partial results and say 'there might be more' - fetch everything first!\n\n" +
-		"INCIDENT REFERENCE RESOLUTION:\n" +
-		"If user mentions specific incident references (INC-1691), use get_incident({\"incident_id\": \"1691\"}) first to get details.\n" +
-		"For follow-ups/updates on specific incidents, you'll need the actual incident ID from get_incident response.\n\n" +
-		"TEAM/CUSTOM FIELD FILTERING:\n" +
-		"1. search_custom_fields({\"query\": \"team\"}) → get field ID and options\n" +
-		"2. Find option where value=\"Engineering\" → get option.id\n" +
-		"3. list_incidents with custom_field_id + custom_field_value (use option ID!)\n\n" +
+	return "List incidents with filtering. Returns compact summaries by default to avoid large responses.\n\n" +
+		"KEY FEATURES:\n" +
+		"- search: Filter by name (e.g., search='speechify' finds all Speechify incidents)\n" +
+		"- summary: true (default) returns compact summaries, false returns full details\n" +
+		"- page_size: Default 25, increase only if needed\n\n" +
+		"RESPONSE FORMAT (summary=true, default):\n" +
+		"Returns: reference, name, status, severity, created_at, updated_at, permalink\n" +
+		"This is much smaller than full incident objects!\n\n" +
 		"EXAMPLES:\n" +
-		"User: 'show all Engineering team incidents from past week'\n" +
-		"→ search_custom_fields({\"query\": \"team\"})\n" +
-		"→ list_incidents({\"custom_field_id\": \"cf_ABC\", \"custom_field_value\": \"opt_XYZ\", \"created_at_gte\": \"2025-10-08\", \"page_size\": 100})\n" +
-		"→ IF has_more_results=true: list_incidents({same filters, \"after\": cursor}) and repeat\n" +
-		"→ Combine all pages, then show user complete list\n\n" +
-		"Date format: \"2025-10-15\". IMPORTANT: Use current year when calculating dates!"
+		"Find Speechify incidents: list_incidents({\"search\": \"speechify\"})\n" +
+		"Recent incidents: list_incidents({\"created_at_gte\": \"2025-01-28\"})\n" +
+		"Full details: list_incidents({\"search\": \"speechify\", \"summary\": false})\n\n" +
+		"PAGINATION:\n" +
+		"If has_more_results=true, call again with 'after' cursor from pagination_meta.\n\n" +
+		"INCIDENT REFERENCE RESOLUTION:\n" +
+		"For INC-1691, use get_incident({\"incident_id\": \"1691\"}) for full details.\n\n" +
+		"Date format: \"2025-10-15\". Use current year when calculating dates!"
 }
 
 func (t *ListIncidentsTool) InputSchema() map[string]interface{} {
 	return map[string]interface{}{
 		"type": "object",
 		"properties": map[string]interface{}{
+			"search": map[string]interface{}{
+				"type":        "string",
+				"description": "Filter incidents by name (case-insensitive substring match). Example: 'speechify' returns all incidents with 'speechify' in the name.",
+			},
+			"summary": map[string]interface{}{
+				"type":        "boolean",
+				"description": "Return compact summaries instead of full incident details. Defaults to true. Set to false for full details (warning: large response).",
+				"default":     true,
+			},
 			"page_size": map[string]interface{}{
 				"type":        "integer",
-				"description": "Number of results per page. Use 50-100 for efficiency. To get more results, use pagination with 'after' parameter.",
-				"default":     100,
+				"description": "Number of results per page. Default is 25. Use 50-100 only if you need more results per page.",
+				"default":     25,
 				"minimum":     1,
 				"maximum":     100,
 			},
@@ -108,9 +112,32 @@ func (t *ListIncidentsTool) InputSchema() map[string]interface{} {
 	}
 }
 
+// IncidentSummary is a lightweight representation for list responses
+type IncidentSummary struct {
+	Reference  string `json:"reference"`
+	Name       string `json:"name"`
+	Status     string `json:"status"`
+	Severity   string `json:"severity"`
+	CreatedAt  string `json:"created_at"`
+	UpdatedAt  string `json:"updated_at"`
+	Permalink  string `json:"permalink"`
+}
+
 func (t *ListIncidentsTool) Execute(args map[string]interface{}) (string, error) {
 	opts := &client.ListIncidentsOptions{
-		PageSize: 100, // Default to 100 for better efficiency
+		PageSize: 25, // Default to 25 for reasonable response sizes
+	}
+
+	// Parse search filter
+	searchFilter := ""
+	if search, ok := args["search"].(string); ok && search != "" {
+		searchFilter = strings.ToLower(search)
+	}
+
+	// Parse summary mode (default true)
+	summaryMode := true
+	if summary, ok := args["summary"].(bool); ok {
+		summaryMode = summary
 	}
 
 	if pageSize, ok := args["page_size"].(float64); ok {
@@ -176,11 +203,48 @@ func (t *ListIncidentsTool) Execute(args map[string]interface{}) (string, error)
 		return "", err
 	}
 
+	// Apply search filter if provided
+	filteredIncidents := resp.Incidents
+	if searchFilter != "" {
+		filteredIncidents = nil
+		for _, inc := range resp.Incidents {
+			if strings.Contains(strings.ToLower(inc.Name), searchFilter) {
+				filteredIncidents = append(filteredIncidents, inc)
+			}
+		}
+	}
+
+	// Build response based on summary mode
+	var incidentsData interface{}
+	if summaryMode {
+		summaries := make([]IncidentSummary, 0, len(filteredIncidents))
+		for _, inc := range filteredIncidents {
+			summaries = append(summaries, IncidentSummary{
+				Reference:  inc.Reference,
+				Name:       inc.Name,
+				Status:     inc.IncidentStatus.Name,
+				Severity:   inc.Severity.Name,
+				CreatedAt:  inc.CreatedAt.Format(time.RFC3339),
+				UpdatedAt:  inc.UpdatedAt.Format(time.RFC3339),
+				Permalink:  inc.Permalink,
+			})
+		}
+		incidentsData = summaries
+	} else {
+		incidentsData = filteredIncidents
+	}
+
 	// Create response with prominent pagination info
 	response := map[string]interface{}{
-		"incidents":       resp.Incidents,
+		"incidents":       incidentsData,
 		"pagination_meta": resp.PaginationMeta,
-		"count":           len(resp.Incidents),
+		"count":           len(filteredIncidents),
+	}
+
+	// Add note about search filtering if applied
+	if searchFilter != "" {
+		response["search_applied"] = searchFilter
+		response["search_note"] = fmt.Sprintf("Filtered %d incidents from %d total on this page", len(filteredIncidents), len(resp.Incidents))
 	}
 
 	// Add prominent pagination status
