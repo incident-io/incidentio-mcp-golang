@@ -344,10 +344,18 @@ func TestGetMaxResponseSize(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variable
 			if tt.envValue != "" {
-				os.Setenv("MCP_MAX_RESPONSE_SIZE", tt.envValue)
-				defer os.Unsetenv("MCP_MAX_RESPONSE_SIZE")
+				if err := os.Setenv("MCP_MAX_RESPONSE_SIZE", tt.envValue); err != nil {
+					t.Fatalf("Failed to set env var: %v", err)
+				}
+				defer func() {
+					if err := os.Unsetenv("MCP_MAX_RESPONSE_SIZE"); err != nil {
+						t.Errorf("Failed to unset env var: %v", err)
+					}
+				}()
 			} else {
-				os.Unsetenv("MCP_MAX_RESPONSE_SIZE")
+				if err := os.Unsetenv("MCP_MAX_RESPONSE_SIZE"); err != nil {
+					t.Fatalf("Failed to unset env var: %v", err)
+				}
 			}
 
 			result := getMaxResponseSize()
@@ -488,8 +496,14 @@ func TestFormatJSONResponse_WithTruncation(t *testing.T) {
 	}
 
 	// Set a small max size to trigger truncation
-	os.Setenv("MCP_MAX_RESPONSE_SIZE", "5000")
-	defer os.Unsetenv("MCP_MAX_RESPONSE_SIZE")
+	if err := os.Setenv("MCP_MAX_RESPONSE_SIZE", "5000"); err != nil {
+		t.Fatalf("Failed to set env var: %v", err)
+	}
+	defer func() {
+		if err := os.Unsetenv("MCP_MAX_RESPONSE_SIZE"); err != nil {
+			t.Errorf("Failed to unset env var: %v", err)
+		}
+	}()
 
 	result, err := FormatJSONResponse(response)
 	if err != nil {
