@@ -158,6 +158,7 @@ func TestGetIncident(t *testing.T) {
 					"reference": "INC-123",
 					"name": "Database outage",
 					"summary": "Primary database cluster is experiencing connectivity issues",
+					"postmortem_document_url": "https://example.com/postmortem",
 					"incident_status": {
 						"id": "status_active",
 						"name": "Active"
@@ -217,6 +218,9 @@ func TestGetIncident(t *testing.T) {
 			assertEqual(t, tt.incidentID, incident.ID)
 			assertEqual(t, "INC-123", incident.Reference)
 			assertEqual(t, "Database outage", incident.Name)
+			if incident.PostmortemDocumentURL != "" {
+				assertEqual(t, "https://example.com/postmortem", incident.PostmortemDocumentURL)
+			}
 
 			// Verify role assignments
 			if len(incident.IncidentRoleAssignments) > 0 {
