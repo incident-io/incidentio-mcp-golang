@@ -530,6 +530,27 @@ func (t *UpdateIncidentTool) InputSchema() map[string]interface{} {
 				"type":        "string",
 				"description": "Update the severity ID",
 			},
+			"custom_field_entries": map[string]interface{}{
+				"type":        "array",
+				"description": "Custom field entries to update. Each entry needs a custom_field_id and an array of value objects. For select fields, each value object should have a 'value_option_id' key with the option ID. For text fields, use 'value_text'. For numeric, use 'value_numeric'. For link, use 'value_link'.",
+				"items": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"custom_field_id": map[string]interface{}{
+							"type":        "string",
+							"description": "The ID of the custom field to set",
+						},
+						"values": map[string]interface{}{
+							"type":        "array",
+							"description": "Array of value objects for this field",
+							"items": map[string]interface{}{
+								"type": "object",
+							},
+						},
+					},
+					"required": []interface{}{"custom_field_id", "values"},
+				},
+			},
 		},
 		"required":             []interface{}{"incident_id"},
 		"additionalProperties": false,
@@ -565,6 +586,29 @@ func (t *UpdateIncidentTool) Execute(args map[string]interface{}) (string, error
 	if severityID, ok := args["severity_id"].(string); ok {
 		req.SeverityID = severityID
 		hasUpdate = true
+	}
+
+	if entries, ok := args["custom_field_entries"].([]interface{}); ok && len(entries) > 0 {
+		var customFieldEntries []client.CustomFieldEntryRequest
+		for _, entry := range entries {
+			entryMap, ok := entry.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			fieldID, _ := entryMap["custom_field_id"].(string)
+			if fieldID == "" {
+				continue
+			}
+			values, _ := entryMap["values"].([]interface{})
+			customFieldEntries = append(customFieldEntries, client.CustomFieldEntryRequest{
+				CustomFieldID: fieldID,
+				Values:        values,
+			})
+		}
+		if len(customFieldEntries) > 0 {
+			req.CustomFieldEntries = customFieldEntries
+			hasUpdate = true
+		}
 	}
 
 	if !hasUpdate {
