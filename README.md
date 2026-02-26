@@ -13,17 +13,7 @@ A GoLang implementation of an MCP (Model Context Protocol) server for incident.i
 ## 🚀 Quick Start
 
 ```bash
-# Clone the repository
-git clone https://github.com/incident-io/incidentio-mcp-golang.git
-cd incidentio-mcp-golang
-
-# Set up environment
-cp .env.example .env
-# Edit .env and add your incident.io API key
-
-# Build and run
-go build -o bin/mcp-server ./cmd/mcp-server
-./start-mcp-server.sh
+go run github.com/incident-io/incidentio-mcp-golang/cmd/mcp-server@latest
 ```
 
 ## 📋 Features
@@ -47,7 +37,11 @@ Add to your Claude Desktop configuration:
 {
   "mcpServers": {
     "incidentio": {
-      "command": "/path/to/incidentio-mcp-golang/start-mcp-server.sh",
+      "command": "go",
+      "args":[
+        "run",
+        "github.com/incident-io/incidentio-mcp-golang/cmd/mcp-server@latest"
+      ],
       "env": {
         "INCIDENT_IO_API_KEY": "your-api-key"
       }
@@ -56,6 +50,18 @@ Add to your Claude Desktop configuration:
 }
 ```
 Or, if you'd prefer to run everything in Docker:
+
+
+```shell
+# Clone the repository
+git clone https://github.com/incident-io/incidentio-mcp-golang.git
+cd incidentio-mcp-golang
+
+# Set up environment
+cp .env.example .env
+# Edit .env and add your incident.io API key
+
+```
 
 ```json
 {
