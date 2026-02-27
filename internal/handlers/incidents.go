@@ -27,14 +27,16 @@ func (t *ListIncidentsTool) Description() string {
 		"KEY FEATURES:\n" +
 		"- search: Filter by name (e.g., search='speechify' finds all Speechify incidents)\n" +
 		"- summary: true (default) returns compact summaries, false returns full details\n" +
-		"- page_size: Default 25, increase only if needed\n\n" +
+		"- page_size: Default 25, increase only if needed\n" +
+		"- incident_type_id: Filter by incident type IDs (use list_incident_types to get IDs)\n\n" +
 		"RESPONSE FORMAT (summary=true, default):\n" +
 		"Returns: reference, name, status, severity, created_at, updated_at, permalink\n" +
 		"This is much smaller than full incident objects!\n\n" +
 		"EXAMPLES:\n" +
 		"Find Speechify incidents: list_incidents({\"search\": \"speechify\"})\n" +
 		"Recent incidents: list_incidents({\"created_at_gte\": \"2025-01-28\"})\n" +
-		"Full details: list_incidents({\"search\": \"speechify\", \"summary\": false})\n\n" +
+		"Full details: list_incidents({\"search\": \"speechify\", \"summary\": false})\n" +
+		"Filter by type: list_incidents({\"incident_type_id\": [\"01ABC123\"]})\n\n" +
 		"PAGINATION:\n" +
 		"If has_more_results=true, call again with 'after' cursor from pagination_meta.\n\n" +
 		"INCIDENT REFERENCE RESOLUTION:\n" +
@@ -107,6 +109,11 @@ func (t *ListIncidentsTool) InputSchema() map[string]interface{} {
 			"custom_field_value": map[string]interface{}{
 				"type":        "string",
 				"description": "Custom field OPTION ID to match. For select fields, this must be the option's ID (e.g., '01JQ7...'), not the label. Get from the options array of search_custom_fields response.",
+			},
+			"incident_type_id": map[string]interface{}{
+				"type":        "array",
+				"items":       map[string]interface{}{"type": "string"},
+				"description": "Filter by incident type IDs. Use list_incident_types to get IDs. Example: ['01ABC123']",
 			},
 		},
 	}
@@ -186,6 +193,14 @@ func (t *ListIncidentsTool) Execute(args map[string]interface{}) (string, error)
 
 	if updatedAtLte, ok := args["updated_at_lte"].(string); ok && updatedAtLte != "" {
 		opts.UpdatedAtLte = updatedAtLte
+	}
+
+	if typeIDs, ok := args["incident_type_id"].([]interface{}); ok {
+		for _, id := range typeIDs {
+			if str, ok := id.(string); ok {
+				opts.IncidentTypeOneOf = append(opts.IncidentTypeOneOf, str)
+			}
+		}
 	}
 
 	// Handle custom field filtering - API format: custom_field[ID][one_of]=option_id
