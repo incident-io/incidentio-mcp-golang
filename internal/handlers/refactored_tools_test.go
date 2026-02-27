@@ -208,7 +208,7 @@ func TestListAlertsTool_Schema(t *testing.T) {
 	}
 
 	properties := schema["properties"].(map[string]interface{})
-	expectedProps := []string{"page_size", "after", "status", "deduplication_key", "created_at_gte", "created_at_lte", "created_at_date_range"}
+	expectedProps := []string{"title", "page_size", "after", "status", "deduplication_key", "alert_source_id", "created_at_gte", "created_at_lte", "created_at_date_range"}
 	for _, prop := range expectedProps {
 		if _, ok := properties[prop]; !ok {
 			t.Errorf("Schema should have '%s' property", prop)
