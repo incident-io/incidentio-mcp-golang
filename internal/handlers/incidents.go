@@ -25,16 +25,16 @@ func (t *ListIncidentsTool) Name() string {
 func (t *ListIncidentsTool) Description() string {
 	return "List incidents with filtering. Returns compact summaries by default to avoid large responses.\n\n" +
 		"KEY FEATURES:\n" +
-		"- search: Filter by name (e.g., search='speechify' finds all Speechify incidents)\n" +
 		"- summary: true (default) returns compact summaries, false returns full details\n" +
-		"- page_size: Default 25, increase only if needed\n\n" +
+		"- page_size: Default 25, increase only if needed\n" +
+		"- Use status, severity, and date filters for efficient API-side filtering\n\n" +
 		"RESPONSE FORMAT (summary=true, default):\n" +
 		"Returns: reference, name, status, severity, created_at, updated_at, permalink\n" +
 		"This is much smaller than full incident objects!\n\n" +
 		"EXAMPLES:\n" +
-		"Find Speechify incidents: list_incidents({\"search\": \"speechify\"})\n" +
 		"Recent incidents: list_incidents({\"created_at_gte\": \"2025-01-28\"})\n" +
-		"Full details: list_incidents({\"search\": \"speechify\", \"summary\": false})\n\n" +
+		"Active critical: list_incidents({\"status\": [\"active\"], \"severity_gte\": \"sev_critical_id\"})\n" +
+		"Full details: list_incidents({\"summary\": false})\n\n" +
 		"PAGINATION:\n" +
 		"If has_more_results=true, call again with 'after' cursor from pagination_meta.\n\n" +
 		"INCIDENT REFERENCE RESOLUTION:\n" +
@@ -46,10 +46,6 @@ func (t *ListIncidentsTool) InputSchema() map[string]interface{} {
 	return map[string]interface{}{
 		"type": "object",
 		"properties": map[string]interface{}{
-			"search": map[string]interface{}{
-				"type":        "string",
-				"description": "Filter incidents by name (case-insensitive substring match). Example: 'speechify' returns all incidents with 'speechify' in the name.",
-			},
 			"summary": map[string]interface{}{
 				"type":        "boolean",
 				"description": "Return compact summaries instead of full incident details. Defaults to true. Set to false for full details (warning: large response).",
@@ -114,24 +110,18 @@ func (t *ListIncidentsTool) InputSchema() map[string]interface{} {
 
 // IncidentSummary is a lightweight representation for list responses
 type IncidentSummary struct {
-	Reference  string `json:"reference"`
-	Name       string `json:"name"`
-	Status     string `json:"status"`
-	Severity   string `json:"severity"`
-	CreatedAt  string `json:"created_at"`
-	UpdatedAt  string `json:"updated_at"`
-	Permalink  string `json:"permalink"`
+	Reference string `json:"reference"`
+	Name      string `json:"name"`
+	Status    string `json:"status"`
+	Severity  string `json:"severity"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+	Permalink string `json:"permalink"`
 }
 
 func (t *ListIncidentsTool) Execute(args map[string]interface{}) (string, error) {
 	opts := &client.ListIncidentsOptions{
 		PageSize: 25, // Default to 25 for reasonable response sizes
-	}
-
-	// Parse search filter
-	searchFilter := ""
-	if search, ok := args["search"].(string); ok && search != "" {
-		searchFilter = strings.ToLower(search)
 	}
 
 	// Parse summary mode (default true)
@@ -203,79 +193,45 @@ func (t *ListIncidentsTool) Execute(args map[string]interface{}) (string, error)
 		return "", err
 	}
 
-	// Apply search filter if provided
-	filteredIncidents := resp.Incidents
-	if searchFilter != "" {
-		filteredIncidents = nil
-		for _, inc := range resp.Incidents {
-			if strings.Contains(strings.ToLower(inc.Name), searchFilter) {
-				filteredIncidents = append(filteredIncidents, inc)
-			}
-		}
-	}
-
 	// Build response based on summary mode
 	var incidentsData interface{}
 	if summaryMode {
-		summaries := make([]IncidentSummary, 0, len(filteredIncidents))
-		for _, inc := range filteredIncidents {
+		summaries := make([]IncidentSummary, 0, len(resp.Incidents))
+		for _, inc := range resp.Incidents {
 			summaries = append(summaries, IncidentSummary{
-				Reference:  inc.Reference,
-				Name:       inc.Name,
-				Status:     inc.IncidentStatus.Name,
-				Severity:   inc.Severity.Name,
-				CreatedAt:  inc.CreatedAt.Format(time.RFC3339),
-				UpdatedAt:  inc.UpdatedAt.Format(time.RFC3339),
-				Permalink:  inc.Permalink,
+				Reference: inc.Reference,
+				Name:      inc.Name,
+				Status:    inc.IncidentStatus.Name,
+				Severity:  inc.Severity.Name,
+				CreatedAt: inc.CreatedAt.Format(time.RFC3339),
+				UpdatedAt: inc.UpdatedAt.Format(time.RFC3339),
+				Permalink: inc.Permalink,
 			})
 		}
 		incidentsData = summaries
 	} else {
-		incidentsData = filteredIncidents
+		incidentsData = resp.Incidents
 	}
 
 	// Create response with prominent pagination info
 	response := map[string]interface{}{
 		"incidents":       incidentsData,
 		"pagination_meta": resp.PaginationMeta,
-		"count":           len(filteredIncidents),
+		"count":           len(resp.Incidents),
 	}
 
-	// Add note about search filtering if applied
-	if searchFilter != "" {
-		response["search_applied"] = searchFilter
-		response["search_note"] = fmt.Sprintf("Filtered %d incidents from %d total on this page", len(filteredIncidents), len(resp.Incidents))
-	}
-
-	// Add prominent pagination status
-	// Use total_record_count to determine if there are more results
-	// The "after" cursor is only needed for the next API call, not for determining if more results exist
+	// Add compact pagination status to minimize context window usage
 	recordsFetched := len(resp.Incidents)
 	totalRecords := resp.PaginationMeta.TotalRecordCount
 	hasMore := recordsFetched < totalRecords
 
-	if hasMore {
-		response["has_more_results"] = true
-		response["pagination_progress"] = map[string]interface{}{
-			"records_fetched":  recordsFetched,
-			"total_records":    totalRecords,
-			"remaining":        totalRecords - recordsFetched,
-			"progress_percent": fmt.Sprintf("%.1f%%", float64(recordsFetched)/float64(totalRecords)*100),
-		}
-		response["FETCH_NEXT_PAGE"] = map[string]interface{}{
-			"action":  "REQUIRED - You must call list_incidents again to get remaining results",
-			"after":   resp.PaginationMeta.After,
-			"message": fmt.Sprintf("Fetched %d of %d incidents (%.1f%%). Call list_incidents again with after='%s' plus same filters. Repeat until has_more_results=false.", recordsFetched, totalRecords, float64(recordsFetched)/float64(totalRecords)*100, resp.PaginationMeta.After),
-		}
-	} else {
-		response["has_more_results"] = false
-		response["pagination_progress"] = map[string]interface{}{
-			"records_fetched":  recordsFetched,
-			"total_records":    totalRecords,
-			"remaining":        0,
-			"progress_percent": "100.0%",
-		}
-		response["pagination_status"] = fmt.Sprintf("COMPLETE - All %d incidents fetched", totalRecords)
+	response["has_more"] = hasMore
+	response["fetched"] = recordsFetched
+	response["total"] = totalRecords
+
+	// Only add next_cursor if there are more results
+	if hasMore && resp.PaginationMeta.After != "" {
+		response["next_cursor"] = resp.PaginationMeta.After
 	}
 
 	return FormatJSONResponse(response)

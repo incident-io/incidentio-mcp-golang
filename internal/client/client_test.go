@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"testing"
+	"time"
 )
 
 // MockHTTPClient is a mock implementation of http.Client for testing
@@ -22,8 +23,12 @@ func NewTestClient(mockClient *MockHTTPClient) *Client {
 		httpClient: &http.Client{
 			Transport: mockClient,
 		},
-		baseURL: "https://api.test.incident.io",
-		apiKey:  "test-api-key",
+		baseURL:        "https://api.test.incident.io",
+		apiKey:         "test-api-key",
+		cache:          NewCache(5 * time.Minute), // Initialize cache for tests
+		rateLimiter:    NewRateLimiter(1000, 100), // High limits for tests
+		circuitBreaker: NewCircuitBreaker(DefaultCircuitBreakerConfig()),
+		retryConfig:    DefaultRetryConfig(),
 	}
 }
 

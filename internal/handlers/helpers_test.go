@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+	"os"
 	"testing"
 )
 
@@ -12,31 +14,21 @@ func TestFormatJSONResponse(t *testing.T) {
 		hasError bool
 	}{
 		{
-			name:  "simple map",
-			input: map[string]interface{}{"key": "value"},
-			expected: `{
-  "key": "value"
-}`,
+			name:     "simple map",
+			input:    map[string]interface{}{"key": "value"},
+			expected: `{"key":"value"}`,
 			hasError: false,
 		},
 		{
-			name:  "nested map",
-			input: map[string]interface{}{"data": map[string]interface{}{"id": "123", "name": "test"}},
-			expected: `{
-  "data": {
-    "id": "123",
-    "name": "test"
-  }
-}`,
+			name:     "nested map",
+			input:    map[string]interface{}{"data": map[string]interface{}{"id": "123", "name": "test"}},
+			expected: `{"data":{"id":"123","name":"test"}}`,
 			hasError: false,
 		},
 		{
-			name:  "slice",
-			input: []string{"item1", "item2"},
-			expected: `[
-  "item1",
-  "item2"
-]`,
+			name:     "slice",
+			input:    []string{"item1", "item2"},
+			expected: `["item1","item2"]`,
 			hasError: false,
 		},
 		{
@@ -313,4 +305,306 @@ func TestCreateSimpleResponse(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetMaxResponseSize(t *testing.T) {
+	tests := []struct {
+		name     string
+		envValue string
+		expected int
+	}{
+		{
+			name:     "default when no env var",
+			envValue: "",
+			expected: DefaultMaxResponseSize,
+		},
+		{
+			name:     "valid env var",
+			envValue: "100000",
+			expected: 100000,
+		},
+		{
+			name:     "invalid env var (non-numeric)",
+			envValue: "invalid",
+			expected: DefaultMaxResponseSize,
+		},
+		{
+			name:     "invalid env var (negative)",
+			envValue: "-1000",
+			expected: DefaultMaxResponseSize,
+		},
+		{
+			name:     "invalid env var (zero)",
+			envValue: "0",
+			expected: DefaultMaxResponseSize,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Set environment variable
+			if tt.envValue != "" {
+				if err := os.Setenv("MCP_MAX_RESPONSE_SIZE", tt.envValue); err != nil {
+					t.Fatalf("Failed to set env var: %v", err)
+				}
+				defer func() {
+					if err := os.Unsetenv("MCP_MAX_RESPONSE_SIZE"); err != nil {
+						t.Errorf("Failed to unset env var: %v", err)
+					}
+				}()
+			} else {
+				if err := os.Unsetenv("MCP_MAX_RESPONSE_SIZE"); err != nil {
+					t.Fatalf("Failed to unset env var: %v", err)
+				}
+			}
+
+			result := getMaxResponseSize()
+			if result != tt.expected {
+				t.Errorf("Expected %d, got %d", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestTruncateResponse(t *testing.T) {
+	// Create a large JSON response for testing
+	largeJSON := `{"data":[`
+	for i := 0; i < 100; i++ {
+		if i > 0 {
+			largeJSON += ","
+		}
+		largeJSON += fmt.Sprintf(`{"id":"%d","name":"item%d","description":"This is a long description for item %d"}`, i, i, i)
+	}
+	largeJSON += `],"count":100}`
+
+	tests := []struct {
+		name         string
+		jsonBytes    []byte
+		maxSize      int
+		shouldError  bool
+		checkWarning bool
+	}{
+		{
+			name:         "truncate large response",
+			jsonBytes:    []byte(largeJSON),
+			maxSize:      2000,
+			shouldError:  false,
+			checkWarning: true,
+		},
+		{
+			name:         "truncate with comma",
+			jsonBytes:    []byte(largeJSON),
+			maxSize:      3000,
+			shouldError:  false,
+			checkWarning: true,
+		},
+		{
+			name:         "very small max size",
+			jsonBytes:    []byte(largeJSON),
+			maxSize:      1500,
+			shouldError:  false,
+			checkWarning: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := truncateResponse(tt.jsonBytes, tt.maxSize, map[string]interface{}{})
+
+			if tt.shouldError && err == nil {
+				t.Error("Expected error but got none")
+				return
+			}
+
+			if !tt.shouldError && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				return
+			}
+
+			if tt.checkWarning {
+				if !contains(result, "_warning") {
+					t.Error("Expected warning in truncated response")
+				}
+				if !contains(result, "_reason") {
+					t.Error("Expected reason in truncated response")
+				}
+				if !contains(result, "_original_size") {
+					t.Error("Expected original_size in truncated response")
+				}
+			}
+
+			// Verify result is smaller than original
+			if len(result) > len(tt.jsonBytes) {
+				t.Errorf("Truncated result (%d bytes) is larger than original (%d bytes)", len(result), len(tt.jsonBytes))
+			}
+		})
+	}
+}
+
+func TestFindLastComma(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected int
+	}{
+		{
+			name:     "string with comma",
+			input:    `{"key":"value","another":"test"}`,
+			expected: 14, // Position of comma after "value"
+		},
+		{
+			name:     "string without comma",
+			input:    `{"key":"value"}`,
+			expected: -1,
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: -1,
+		},
+		{
+			name:     "multiple commas",
+			input:    `{"a":"b","c":"d","e":"f"}`,
+			expected: 16, // Position of last comma
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := findLastComma(tt.input)
+			if result != tt.expected {
+				t.Errorf("Expected %d, got %d", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestFormatJSONResponse_WithTruncation(t *testing.T) {
+	// Create a large response that will trigger truncation
+	largeData := make([]map[string]string, 1000)
+	for i := 0; i < 1000; i++ {
+		largeData[i] = map[string]string{
+			"id":   fmt.Sprintf("id-%d", i),
+			"name": fmt.Sprintf("name-%d", i),
+			"desc": "This is a long description that adds to the response size",
+		}
+	}
+
+	response := map[string]interface{}{
+		"data":  largeData,
+		"count": len(largeData),
+	}
+
+	// Set a small max size to trigger truncation
+	if err := os.Setenv("MCP_MAX_RESPONSE_SIZE", "5000"); err != nil {
+		t.Fatalf("Failed to set env var: %v", err)
+	}
+	defer func() {
+		if err := os.Unsetenv("MCP_MAX_RESPONSE_SIZE"); err != nil {
+			t.Errorf("Failed to unset env var: %v", err)
+		}
+	}()
+
+	result, err := FormatJSONResponse(response)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Verify truncation occurred
+	if !contains(result, "_warning") {
+		t.Error("Expected warning in truncated response")
+	}
+
+	// Verify size is within limit
+	if len(result) > 5000 {
+		t.Errorf("Response size (%d) exceeds limit (5000)", len(result))
+	}
+}
+
+func TestCreateSimpleResponse_DifferentSliceTypes(t *testing.T) {
+	tests := []struct {
+		name          string
+		data          interface{}
+		message       string
+		expectedCount int
+		hasCount      bool
+	}{
+		{
+			name:          "interface slice",
+			data:          []interface{}{"a", "b", "c"},
+			message:       "Test",
+			expectedCount: 3,
+			hasCount:      true,
+		},
+		{
+			name:          "int slice",
+			data:          []int{1, 2, 3, 4},
+			message:       "",
+			expectedCount: 4,
+			hasCount:      true,
+		},
+		{
+			name:          "float64 slice",
+			data:          []float64{1.1, 2.2, 3.3},
+			message:       "Numbers",
+			expectedCount: 3,
+			hasCount:      true,
+		},
+		{
+			name:     "non-slice data",
+			data:     map[string]string{"key": "value"},
+			message:  "Map",
+			hasCount: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := CreateSimpleResponse(tt.data, tt.message)
+
+			// Check data
+			if result["data"] == nil {
+				t.Error("Expected data field")
+			}
+
+			// Check count
+			if tt.hasCount {
+				count, ok := result["count"].(int)
+				if !ok {
+					t.Error("Expected count field to be int")
+				} else if count != tt.expectedCount {
+					t.Errorf("Expected count %d, got %d", tt.expectedCount, count)
+				}
+			} else {
+				if _, exists := result["count"]; exists {
+					t.Error("Did not expect count field for non-slice data")
+				}
+			}
+
+			// Check message
+			if tt.message != "" {
+				if result["message"] != tt.message {
+					t.Errorf("Expected message %q, got %q", tt.message, result["message"])
+				}
+			} else {
+				if _, exists := result["message"]; exists {
+					t.Error("Did not expect message field when message is empty")
+				}
+			}
+		})
+	}
+}
+
+// Helper function to check if a string contains a substring
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && containsHelper(s, substr))
+}
+
+func containsHelper(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }

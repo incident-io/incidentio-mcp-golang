@@ -6,8 +6,14 @@ import (
 	"net/url"
 )
 
-// ListCustomFields retrieves all custom fields
+// ListCustomFields retrieves all custom fields (cached for 5 minutes)
 func (c *Client) ListCustomFields() (*ListCustomFieldsResponse, error) {
+	// Check cache first
+	cacheKey := "custom_fields:list"
+	if cached, found := c.cache.Get(cacheKey); found {
+		return cached.(*ListCustomFieldsResponse), nil
+	}
+
 	respBody, err := c.doRequest("GET", "/custom_fields", nil, nil)
 	if err != nil {
 		return nil, err
@@ -18,11 +24,20 @@ func (c *Client) ListCustomFields() (*ListCustomFieldsResponse, error) {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	// Cache the response
+	c.cache.Set(cacheKey, &response)
+
 	return &response, nil
 }
 
-// GetCustomField retrieves a specific custom field by ID
+// GetCustomField retrieves a specific custom field by ID (cached for 5 minutes)
 func (c *Client) GetCustomField(id string) (*CustomField, error) {
+	// Check cache first
+	cacheKey := fmt.Sprintf("custom_field:%s", id)
+	if cached, found := c.cache.Get(cacheKey); found {
+		return cached.(*CustomField), nil
+	}
+
 	respBody, err := c.doRequest("GET", fmt.Sprintf("/custom_fields/%s", id), nil, nil)
 	if err != nil {
 		return nil, err
@@ -35,15 +50,21 @@ func (c *Client) GetCustomField(id string) (*CustomField, error) {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
+	// Cache the response
+	c.cache.Set(cacheKey, &response.CustomField)
+
 	return &response.CustomField, nil
 }
 
-// CreateCustomField creates a new custom field
+// CreateCustomField creates a new custom field and invalidates cache
 func (c *Client) CreateCustomField(req *CreateCustomFieldRequest) (*CustomField, error) {
 	respBody, err := c.doRequest("POST", "/custom_fields", nil, req)
 	if err != nil {
 		return nil, err
 	}
+
+	// Invalidate list cache since we created a new field
+	c.cache.Delete("custom_fields:list")
 
 	var response struct {
 		CustomField CustomField `json:"custom_field"`

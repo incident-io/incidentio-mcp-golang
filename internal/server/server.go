@@ -72,20 +72,40 @@ func (s *Server) startStdio(ctx context.Context) error {
 	encoder := json.NewEncoder(os.Stdout)
 	decoder := json.NewDecoder(os.Stdin)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
+	// Channel for incoming messages
+	msgChan := make(chan *mcp.Message)
+	errChan := make(chan error)
+
+	// Read from stdin in a separate goroutine
+	go func() {
+		for {
 			var msg mcp.Message
 			if err := decoder.Decode(&msg); err != nil {
 				if err == io.EOF {
-					return nil
+					errChan <- err
+					return
 				}
+				// Skip invalid messages but continue reading
 				continue
 			}
+			msgChan <- &msg
+		}
+	}()
 
-			response, err := s.handleMessage(&msg)
+	for {
+		select {
+		case <-ctx.Done():
+			// Context cancelled, exit gracefully
+			return ctx.Err()
+		case err := <-errChan:
+			// EOF or other terminal error
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		case msg := <-msgChan:
+			// Process the message
+			response, err := s.handleMessage(msg)
 			if err != nil {
 				response = s.createErrorResponse(msg.ID, err)
 			}

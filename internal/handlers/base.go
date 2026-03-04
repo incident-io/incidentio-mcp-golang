@@ -23,9 +23,9 @@ func (b *BaseTool) GetClient() *client.Client {
 	return b.apiClient
 }
 
-// FormatResponse formats a response as JSON with consistent error handling
+// FormatResponse formats a response as compact JSON to minimize context window usage
 func (b *BaseTool) FormatResponse(response interface{}) (string, error) {
-	result, err := json.MarshalIndent(response, "", "  ")
+	result, err := json.Marshal(response) // Compact JSON (no indentation)
 	if err != nil {
 		return "", fmt.Errorf("failed to format response: %w", err)
 	}
