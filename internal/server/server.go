@@ -69,25 +69,51 @@ func (s *Server) Start(ctx context.Context) error {
 }
 
 func (s *Server) startStdio(ctx context.Context) error {
-	encoder := json.NewEncoder(os.Stdout)
-	decoder := json.NewDecoder(os.Stdin)
+	return s.startStdioWithIO(ctx, os.Stdin, os.Stdout)
+}
+
+func (s *Server) startStdioWithIO(ctx context.Context, in io.Reader, out io.Writer) error {
+	encoder := json.NewEncoder(out)
+	decoder := json.NewDecoder(in)
+
+	type decodeResult struct {
+		msg mcp.Message
+		err error
+	}
+
+	decodeCh := make(chan decodeResult)
+	go func() {
+		for {
+			var msg mcp.Message
+			err := decoder.Decode(&msg)
+
+			select {
+			case decodeCh <- decodeResult{msg: msg, err: err}:
+			case <-ctx.Done():
+				return
+			}
+
+			if err == io.EOF {
+				return
+			}
+		}
+	}()
 
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		default:
-			var msg mcp.Message
-			if err := decoder.Decode(&msg); err != nil {
-				if err == io.EOF {
+		case decoded := <-decodeCh:
+			if decoded.err != nil {
+				if decoded.err == io.EOF {
 					return nil
 				}
 				continue
 			}
 
-			response, err := s.handleMessage(&msg)
+			response, err := s.handleMessage(&decoded.msg)
 			if err != nil {
-				response = s.createErrorResponse(msg.ID, err)
+				response = s.createErrorResponse(decoded.msg.ID, err)
 			}
 
 			if response != nil {
