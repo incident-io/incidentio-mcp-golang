@@ -17,6 +17,7 @@ type ListIncidentsOptions struct {
 	SeverityOneOf      []string // Filter by exact severity IDs (severity[one_of]=ID)
 	SeverityGte        string   // Filter by severity rank >= this ID (severity[gte]=ID)
 	SeverityLte        string   // Filter by severity rank <= this ID (severity[lte]=ID)
+	IncidentTypeOneOf  []string // Filter by incident type IDs (incident_type[one_of]=ID)
 	CreatedAtGte       string   // Greater than or equal to (format: "2024-12-02")
 	CreatedAtLte       string   // Less than or equal to (format: "2024-12-02")
 	CreatedAtDateRange string   // Date range (format: "2024-12-02~2024-12-08")
@@ -67,6 +68,9 @@ func (c *Client) ListIncidents(opts *ListIncidentsOptions) (*ListIncidentsRespon
 		}
 		if opts.SeverityLte != "" {
 			params.Add("severity[lte]", opts.SeverityLte)
+		}
+		for _, typeID := range opts.IncidentTypeOneOf {
+			params.Add("incident_type[one_of]", typeID)
 		}
 		if opts.CreatedAtGte != "" {
 			params.Add("created_at[gte]", opts.CreatedAtGte)

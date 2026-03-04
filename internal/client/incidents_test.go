@@ -55,6 +55,41 @@ func TestListIncidents(t *testing.T) {
 			expectedCount:  0,
 		},
 		{
+			name: "filter by incident type",
+			params: &ListIncidentsOptions{
+				IncidentTypeOneOf: []string{"type_security"},
+			},
+			mockResponse: `{
+				"incidents": [
+					{
+						"id": "inc_sec",
+						"reference": "INC-100",
+						"name": "Security incident",
+						"incident_status": {
+							"id": "status_active",
+							"name": "Active"
+						},
+						"severity": {
+							"id": "sev_1",
+							"name": "Critical"
+						},
+						"incident_type": {
+							"id": "type_security",
+							"name": "Security"
+						},
+						"created_at": "2024-01-01T00:00:00Z",
+						"updated_at": "2024-01-01T01:00:00Z"
+					}
+				],
+				"pagination_info": {
+					"page_size": 25
+				}
+			}`,
+			mockStatusCode: http.StatusOK,
+			wantError:      false,
+			expectedCount:  1,
+		},
+		{
 			name: "filter by severity",
 			params: &ListIncidentsOptions{
 				Severity: []string{"sev_1", "sev_2"},
@@ -106,6 +141,12 @@ func TestListIncidents(t *testing.T) {
 								t.Errorf("expected %d status values, got %d", len(tt.params.Status), len(statusValues))
 							}
 						}
+						if len(tt.params.IncidentTypeOneOf) > 0 {
+							typeValues := req.URL.Query()["incident_type[one_of]"]
+							if len(typeValues) != len(tt.params.IncidentTypeOneOf) {
+								t.Errorf("expected %d incident_type values, got %d", len(tt.params.IncidentTypeOneOf), len(typeValues))
+							}
+						}
 					}
 
 					return mockResponse(tt.mockStatusCode, tt.mockResponse), nil
@@ -132,6 +173,9 @@ func TestListIncidents(t *testing.T) {
 					assertEqual(t, "inc_123", incident.ID)
 					assertEqual(t, "INC-123", incident.Reference)
 					assertEqual(t, "Database outage", incident.Name)
+				case "filter by incident type":
+					assertEqual(t, "inc_sec", incident.ID)
+					assertEqual(t, "type_security", incident.IncidentType.ID)
 				case "filter by severity":
 					assertEqual(t, "inc_456", incident.ID)
 					assertEqual(t, "sev_2", incident.Severity.ID)
