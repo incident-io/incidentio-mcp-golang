@@ -493,3 +493,47 @@ type FollowUp struct {
 	UpdatedAt              time.Time               `json:"updated_at"`
 	CompletedAt            *time.Time              `json:"completed_at,omitempty"`
 }
+
+// PostmortemDocument represents a postmortem document in incident.io
+type PostmortemDocument struct {
+	ID           string             `json:"id"`
+	IncidentID   string             `json:"incident_id"`
+	Title        string             `json:"title"`
+	Status       string             `json:"status"` // in_progress, in_review, completed
+	DocumentURL  string             `json:"document_url"`
+	ExportedURLs []ExportedURL      `json:"exported_urls,omitempty"`
+	Editors      []PostmortemEditor `json:"editors,omitempty"`
+	CreatedAt    time.Time          `json:"created_at"`
+	UpdatedAt    time.Time          `json:"updated_at"`
+}
+
+// ExportedURL represents an exported URL for a postmortem document
+type ExportedURL struct {
+	URL      string `json:"url"`
+	Provider string `json:"provider,omitempty"`
+}
+
+// PostmortemEditor represents a user who has edited a postmortem document
+type PostmortemEditor struct {
+	User     *User     `json:"user,omitempty"`
+	EditedAt time.Time `json:"edited_at"`
+}
+
+// ListPostmortemsOptions represents options for listing postmortem documents
+type ListPostmortemsOptions struct {
+	PageSize   int
+	After      string
+	IncidentID string
+	SortBy     string // created_at_newest_first, created_at_oldest_first
+}
+
+// ListPostmortemsResponse represents the response from listing postmortem documents
+type ListPostmortemsResponse struct {
+	PostmortemDocuments []PostmortemDocument `json:"postmortem_documents"`
+	ListResponse
+}
+
+// PostmortemContentResponse represents the response from getting postmortem content
+type PostmortemContentResponse struct {
+	Markdown string `json:"markdown"`
+}
