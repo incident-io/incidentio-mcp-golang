@@ -118,6 +118,13 @@ func (r *ToolRegistry) RegisterSeverityTools(c *client.Client) {
 	r.RegisterTool("get_severity", NewGetSeverityTool(c))
 }
 
+// RegisterPostmortemTools registers all postmortem tools
+func (r *ToolRegistry) RegisterPostmortemTools(c *client.Client) {
+	r.RegisterTool("list_postmortems", NewListPostmortemsTool(c))
+	r.RegisterTool("get_postmortem", NewGetPostmortemTool(c))
+	r.RegisterTool("get_postmortem_content", NewGetPostmortemContentTool(c))
+}
+
 // RegisterAllTools registers all available tools
 func (r *ToolRegistry) RegisterAllTools(c *client.Client) {
 	r.RegisterIncidentTools(c)
@@ -132,4 +139,5 @@ func (r *ToolRegistry) RegisterAllTools(c *client.Client) {
 	r.RegisterCatalogTools(c)
 	r.RegisterCustomFieldTools(c)
 	r.RegisterSeverityTools(c)
+	r.RegisterPostmortemTools(c)
 }

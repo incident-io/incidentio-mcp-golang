@@ -88,6 +88,12 @@ Or, if you'd prefer to run everything in Docker:
 - `list_follow_ups` - List follow-ups with optional filters
 - `get_follow_up` - Get details of a specific follow-up
 
+### Postmortem Management
+
+- `list_postmortems` - List postmortem documents with optional filters
+- `get_postmortem` - Get metadata for a specific postmortem document
+- `get_postmortem_content` - Get the full markdown content of a postmortem
+
 ### Alert Management
 
 - `list_alerts` - List alerts with optional filters
@@ -137,6 +143,8 @@ Or, if you'd prefer to run everything in Docker:
 "Show me all custom fields configured in incident.io"
 "Search for custom fields related to 'priority'"
 "Create a new custom field called 'Root Cause' with type single_select"
+"List all postmortems for incident INC-123"
+"Get the full content of the postmortem for our last major incident"
 ```
 
 ## 📚 Documentation
