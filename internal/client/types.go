@@ -75,9 +75,11 @@ type RoleAssignment struct {
 
 // User represents a user in incident.io
 type User struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Email       string `json:"email"`
+	SlackUserID string `json:"slack_user_id,omitempty"`
+	Role        string `json:"role,omitempty"` // viewer, responder, administrator, owner, unset (deprecated)
 }
 
 // CustomFieldEntry represents a custom field entry
@@ -496,27 +498,15 @@ type FollowUp struct {
 
 // PostmortemDocument represents a postmortem document in incident.io
 type PostmortemDocument struct {
-	ID           string             `json:"id"`
-	IncidentID   string             `json:"incident_id"`
-	Title        string             `json:"title"`
-	Status       string             `json:"status"` // in_progress, in_review, completed
-	DocumentURL  string             `json:"document_url"`
-	ExportedURLs []ExportedURL      `json:"exported_urls,omitempty"`
-	Editors      []PostmortemEditor `json:"editors,omitempty"`
-	CreatedAt    time.Time          `json:"created_at"`
-	UpdatedAt    time.Time          `json:"updated_at"`
-}
-
-// ExportedURL represents an exported URL for a postmortem document
-type ExportedURL struct {
-	URL      string `json:"url"`
-	Provider string `json:"provider,omitempty"`
-}
-
-// PostmortemEditor represents a user who has edited a postmortem document
-type PostmortemEditor struct {
-	User     *User     `json:"user,omitempty"`
-	EditedAt time.Time `json:"edited_at"`
+	ID           string    `json:"id"`
+	IncidentID   string    `json:"incident_id"`
+	Title        string    `json:"title"`
+	Status       string    `json:"status"` // in_progress, in_review, completed
+	DocumentURL  string    `json:"document_url"`
+	ExportedURLs []string  `json:"exported_urls,omitempty"`
+	Editors      []User    `json:"editors,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 // ListPostmortemsOptions represents options for listing postmortem documents
