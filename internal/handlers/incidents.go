@@ -25,7 +25,8 @@ func (t *ListIncidentsTool) Name() string {
 func (t *ListIncidentsTool) Description() string {
 	return "List incidents with filtering. Returns compact summaries by default to avoid large responses.\n\n" +
 		"KEY FEATURES:\n" +
-		"- search: Filter by name (e.g., search='speechify' finds all Speechify incidents)\n" +
+		"- search: Filter by name (e.g., search='speechify' finds all Speechify incidents). " +
+		"Auto-paginates all pages and returns up to 50 matches — no manual pagination needed.\n" +
 		"- summary: true (default) returns compact summaries, false returns full details\n" +
 		"- page_size: Default 25, increase only if needed\n" +
 		"- incident_type_id: Filter by incident type IDs (use list_incident_types to get IDs)\n\n" +
@@ -37,7 +38,7 @@ func (t *ListIncidentsTool) Description() string {
 		"Recent incidents: list_incidents({\"created_at_gte\": \"2025-01-28\"})\n" +
 		"Full details: list_incidents({\"search\": \"speechify\", \"summary\": false})\n" +
 		"Filter by type: list_incidents({\"incident_type_id\": [\"01ABC123\"]})\n\n" +
-		"PAGINATION:\n" +
+		"PAGINATION (when not using search):\n" +
 		"If has_more_results=true, call again with 'after' cursor from pagination_meta.\n\n" +
 		"INCIDENT REFERENCE RESOLUTION:\n" +
 		"For INC-1691, use get_incident({\"incident_id\": \"1691\"}) for full details.\n\n" +
@@ -50,7 +51,7 @@ func (t *ListIncidentsTool) InputSchema() map[string]interface{} {
 		"properties": map[string]interface{}{
 			"search": map[string]interface{}{
 				"type":        "string",
-				"description": "Filter incidents by name (case-insensitive substring match). Example: 'speechify' returns all incidents with 'speechify' in the name.",
+				"description": "Filter incidents by name (case-insensitive substring match). Auto-paginates all pages and returns up to 50 matches. Example: 'speechify' returns all incidents with 'speechify' in the name.",
 			},
 			"summary": map[string]interface{}{
 				"type":        "boolean",
@@ -59,14 +60,14 @@ func (t *ListIncidentsTool) InputSchema() map[string]interface{} {
 			},
 			"page_size": map[string]interface{}{
 				"type":        "integer",
-				"description": "Number of results per page. Default is 25. Use 50-100 only if you need more results per page.",
+				"description": "Number of results per page. Default is 25. Use 50-100 only if you need more results per page. Ignored when search is set.",
 				"default":     25,
 				"minimum":     1,
 				"maximum":     100,
 			},
 			"after": map[string]interface{}{
 				"type":        "string",
-				"description": "Pagination cursor from previous response. Get this from pagination_meta.after in the previous response.",
+				"description": "Pagination cursor from previous response. Get this from pagination_meta.after in the previous response. Ignored when search is set.",
 			},
 			"status": map[string]interface{}{
 				"type":        "array",
@@ -121,19 +122,33 @@ func (t *ListIncidentsTool) InputSchema() map[string]interface{} {
 
 // IncidentSummary is a lightweight representation for list responses
 type IncidentSummary struct {
-	Reference  string `json:"reference"`
-	Name       string `json:"name"`
-	Status     string `json:"status"`
-	Severity   string `json:"severity"`
-	CreatedAt  string `json:"created_at"`
-	UpdatedAt  string `json:"updated_at"`
-	Permalink  string `json:"permalink"`
+	Reference string `json:"reference"`
+	Name      string `json:"name"`
+	Status    string `json:"status"`
+	Severity  string `json:"severity"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+	Permalink string `json:"permalink"`
+}
+
+func toSummaries(incidents []client.Incident) []IncidentSummary {
+	summaries := make([]IncidentSummary, 0, len(incidents))
+	for _, inc := range incidents {
+		summaries = append(summaries, IncidentSummary{
+			Reference: inc.Reference,
+			Name:      inc.Name,
+			Status:    inc.IncidentStatus.Name,
+			Severity:  inc.Severity.Name,
+			CreatedAt: inc.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: inc.UpdatedAt.Format(time.RFC3339),
+			Permalink: inc.Permalink,
+		})
+	}
+	return summaries
 }
 
 func (t *ListIncidentsTool) Execute(args map[string]interface{}) (string, error) {
-	opts := &client.ListIncidentsOptions{
-		PageSize: 25, // Default to 25 for reasonable response sizes
-	}
+	opts := &client.ListIncidentsOptions{}
 
 	// Parse search filter
 	searchFilter := ""
@@ -147,14 +162,7 @@ func (t *ListIncidentsTool) Execute(args map[string]interface{}) (string, error)
 		summaryMode = summary
 	}
 
-	if pageSize, ok := args["page_size"].(float64); ok {
-		opts.PageSize = int(pageSize)
-	}
-
-	if after, ok := args["after"].(string); ok && after != "" {
-		opts.After = after
-	}
-
+	// Server-side filters
 	if statuses, ok := args["status"].([]interface{}); ok {
 		for _, s := range statuses {
 			if str, ok := s.(string); ok {
@@ -213,53 +221,85 @@ func (t *ListIncidentsTool) Execute(args map[string]interface{}) (string, error)
 		}
 	}
 
+	// Auto-paginating search mode
+	if searchFilter != "" {
+		opts.PageSize = 250 // max API page size for incidents
+		var matched []client.Incident
+		pagesScanned := 0
+
+		for pagesScanned < maxSearchPages {
+			resp, err := t.apiClient.ListIncidents(opts)
+			if err != nil {
+				return "", err
+			}
+			pagesScanned++
+
+			for i := range resp.Incidents {
+				if strings.Contains(strings.ToLower(resp.Incidents[i].Name), searchFilter) {
+					matched = append(matched, resp.Incidents[i])
+					if len(matched) >= maxSearchResults {
+						break
+					}
+				}
+			}
+
+			if len(matched) >= maxSearchResults || resp.PaginationMeta.After == "" {
+				break
+			}
+			opts.After = resp.PaginationMeta.After
+		}
+
+		var incidentsData interface{}
+		if summaryMode {
+			incidentsData = toSummaries(matched)
+		} else {
+			incidentsData = matched
+		}
+
+		response := map[string]interface{}{
+			"incidents":     incidentsData,
+			"count":         len(matched),
+			"search_filter": searchFilter,
+			"pages_scanned": pagesScanned,
+		}
+		if len(matched) >= maxSearchResults {
+			response["truncated"] = true
+			response["note"] = fmt.Sprintf("Result limit (%d) reached. Narrow with date/status filters.", maxSearchResults)
+		} else if pagesScanned >= maxSearchPages {
+			response["scan_truncated"] = true
+			response["note"] = fmt.Sprintf("Page limit (%d) reached. Use date or status filters to narrow results.", maxSearchPages)
+		}
+		return FormatJSONResponse(response)
+	}
+
+	// Standard single-page mode
+	if pageSize, ok := args["page_size"].(float64); ok {
+		opts.PageSize = int(pageSize)
+	} else {
+		opts.PageSize = 25 // Default to 25 for reasonable response sizes
+	}
+
+	if after, ok := args["after"].(string); ok && after != "" {
+		opts.After = after
+	}
+
 	resp, err := t.apiClient.ListIncidents(opts)
 	if err != nil {
 		return "", err
 	}
 
-	// Apply search filter if provided
-	filteredIncidents := resp.Incidents
-	if searchFilter != "" {
-		filteredIncidents = nil
-		for _, inc := range resp.Incidents {
-			if strings.Contains(strings.ToLower(inc.Name), searchFilter) {
-				filteredIncidents = append(filteredIncidents, inc)
-			}
-		}
-	}
-
-	// Build response based on summary mode
 	var incidentsData interface{}
 	if summaryMode {
-		summaries := make([]IncidentSummary, 0, len(filteredIncidents))
-		for _, inc := range filteredIncidents {
-			summaries = append(summaries, IncidentSummary{
-				Reference:  inc.Reference,
-				Name:       inc.Name,
-				Status:     inc.IncidentStatus.Name,
-				Severity:   inc.Severity.Name,
-				CreatedAt:  inc.CreatedAt.Format(time.RFC3339),
-				UpdatedAt:  inc.UpdatedAt.Format(time.RFC3339),
-				Permalink:  inc.Permalink,
-			})
-		}
-		incidentsData = summaries
+		incidentsData = toSummaries(resp.Incidents)
 	} else {
-		incidentsData = filteredIncidents
+		incidentsData = resp.Incidents
 	}
 
 	// Create response with prominent pagination info
 	response := map[string]interface{}{
 		"incidents":       incidentsData,
 		"pagination_meta": resp.PaginationMeta,
-		"count":           len(filteredIncidents),
-	}
-
-	// Add note about search filtering if applied
-	if searchFilter != "" {
-		response["search_applied"] = searchFilter
-		response["search_note"] = fmt.Sprintf("Filtered %d incidents from %d total on this page", len(filteredIncidents), len(resp.Incidents))
+		"count":           len(resp.Incidents),
 	}
 
 	// Add prominent pagination status

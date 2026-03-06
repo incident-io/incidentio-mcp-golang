@@ -13,6 +13,7 @@ type ListAlertsOptions struct {
 	After              string
 	Status             []string
 	DeduplicationKey   string // Filter by deduplication key
+	AlertSourceID      string // Filter by alert source ID
 	CreatedAtGte       string // Filter alerts created on or after this date
 	CreatedAtLte       string // Filter alerts created on or before this date
 	CreatedAtDateRange string // Filter alerts created within date range (format: "2024-12-02~2024-12-08")
@@ -67,6 +68,10 @@ func (c *Client) ListAlerts(opts *ListAlertsOptions) (*ListAlertsResponse, error
 
 		if opts.DeduplicationKey != "" {
 			params.Set("deduplication_key[is]", opts.DeduplicationKey)
+		}
+
+		if opts.AlertSourceID != "" {
+			params.Set("alert_source_id[is]", opts.AlertSourceID)
 		}
 
 		if opts.CreatedAtGte != "" {
