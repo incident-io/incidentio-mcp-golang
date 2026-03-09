@@ -125,6 +125,13 @@ func (r *ToolRegistry) RegisterPostmortemTools(c *client.Client) {
 	r.RegisterTool("get_postmortem_content", NewGetPostmortemContentTool(c))
 }
 
+// RegisterScheduleTools registers all on-call schedule tools
+func (r *ToolRegistry) RegisterScheduleTools(c *client.Client) {
+	r.RegisterTool("list_schedules", NewListSchedulesTool(c))
+	r.RegisterTool("get_schedule", NewGetScheduleTool(c))
+	r.RegisterTool("list_schedule_entries", NewListScheduleEntriesTool(c))
+}
+
 // RegisterAllTools registers all available tools
 func (r *ToolRegistry) RegisterAllTools(c *client.Client) {
 	r.RegisterIncidentTools(c)
@@ -140,4 +147,5 @@ func (r *ToolRegistry) RegisterAllTools(c *client.Client) {
 	r.RegisterCustomFieldTools(c)
 	r.RegisterSeverityTools(c)
 	r.RegisterPostmortemTools(c)
+	r.RegisterScheduleTools(c)
 }
