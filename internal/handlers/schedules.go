@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/incident-io/incidentio-mcp-golang/internal/client"
@@ -37,6 +36,8 @@ func (t *ListSchedulesTool) InputSchema() map[string]interface{} {
 				"type":        "integer",
 				"description": "Number of results per page (default 25)",
 				"default":     25,
+				"minimum":     1,
+				"maximum":     250,
 			},
 			"after": map[string]interface{}{
 				"type":        "string",
@@ -48,27 +49,23 @@ func (t *ListSchedulesTool) InputSchema() map[string]interface{} {
 }
 
 func (t *ListSchedulesTool) Execute(args map[string]interface{}) (string, error) {
-	opts := &client.ListSchedulesOptions{}
-
-	if pageSize, ok := args["page_size"].(float64); ok {
-		opts.PageSize = int(pageSize)
-	}
-	if after, ok := args["after"].(string); ok && after != "" {
-		opts.After = after
+	opts := &client.ListSchedulesOptions{
+		PageSize: GetIntArg(args, "page_size", 25),
+		After:    GetStringArg(args, "after"),
 	}
 
 	resp, err := t.apiClient.ListSchedules(opts)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to list schedules: %w", err)
 	}
 
 	response := map[string]interface{}{
-		"schedules": resp.Schedules,
-		"count":     len(resp.Schedules),
+		"schedules":       resp.Schedules,
+		"count":           len(resp.Schedules),
+		"pagination_meta": resp.PaginationMeta,
 	}
 
 	if resp.PaginationMeta.After != "" {
-		response["pagination_meta"] = resp.PaginationMeta
 		response["fetch_next_page"] = map[string]interface{}{
 			"action":  "Call list_schedules again with after parameter",
 			"after":   resp.PaginationMeta.After,
@@ -105,7 +102,8 @@ func (t *GetScheduleTool) InputSchema() map[string]interface{} {
 		"properties": map[string]interface{}{
 			"id": map[string]interface{}{
 				"type":        "string",
-				"description": "The schedule ID",
+				"description": "The schedule ID (use list_schedules to find this)",
+				"minLength":   1,
 			},
 		},
 		"required":             []interface{}{"id"},
@@ -114,22 +112,17 @@ func (t *GetScheduleTool) InputSchema() map[string]interface{} {
 }
 
 func (t *GetScheduleTool) Execute(args map[string]interface{}) (string, error) {
-	id, ok := args["id"].(string)
-	if !ok || id == "" {
-		return "", fmt.Errorf("id parameter is required")
+	id := GetStringArg(args, "id")
+	if id == "" {
+		return "", fmt.Errorf("schedule ID is required")
 	}
 
 	schedule, err := t.apiClient.GetSchedule(id)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to get schedule: %w", err)
 	}
 
-	result, err := json.MarshalIndent(schedule, "", "  ")
-	if err != nil {
-		return "", fmt.Errorf("failed to format response: %w", err)
-	}
-
-	return string(result), nil
+	return FormatJSONResponse(schedule)
 }
 
 // ListScheduleEntriesTool lists on-call entries for a schedule within a time window
@@ -174,14 +167,17 @@ func (t *ListScheduleEntriesTool) InputSchema() map[string]interface{} {
 			"schedule_id": map[string]interface{}{
 				"type":        "string",
 				"description": "The schedule ID to get entries for (use list_schedules to find this)",
+				"minLength":   1,
 			},
 			"entry_window_start": map[string]interface{}{
 				"type":        "string",
 				"description": "Start of the time window in ISO 8601 format (e.g., 2026-02-01T00:00:00Z)",
+				"minLength":   1,
 			},
 			"entry_window_end": map[string]interface{}{
 				"type":        "string",
 				"description": "End of the time window in ISO 8601 format (e.g., 2026-03-01T00:00:00Z)",
+				"minLength":   1,
 			},
 		},
 		"required":             []interface{}{"schedule_id", "entry_window_start", "entry_window_end"},
@@ -190,18 +186,18 @@ func (t *ListScheduleEntriesTool) InputSchema() map[string]interface{} {
 }
 
 func (t *ListScheduleEntriesTool) Execute(args map[string]interface{}) (string, error) {
-	scheduleID, ok := args["schedule_id"].(string)
-	if !ok || scheduleID == "" {
+	scheduleID := GetStringArg(args, "schedule_id")
+	if scheduleID == "" {
 		return "", fmt.Errorf("schedule_id parameter is required")
 	}
 
-	windowStart, ok := args["entry_window_start"].(string)
-	if !ok || windowStart == "" {
+	windowStart := GetStringArg(args, "entry_window_start")
+	if windowStart == "" {
 		return "", fmt.Errorf("entry_window_start parameter is required")
 	}
 
-	windowEnd, ok := args["entry_window_end"].(string)
-	if !ok || windowEnd == "" {
+	windowEnd := GetStringArg(args, "entry_window_end")
+	if windowEnd == "" {
 		return "", fmt.Errorf("entry_window_end parameter is required")
 	}
 
@@ -213,7 +209,7 @@ func (t *ListScheduleEntriesTool) Execute(args map[string]interface{}) (string, 
 
 	resp, err := t.apiClient.ListScheduleEntries(opts)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to list schedule entries: %w", err)
 	}
 
 	response := map[string]interface{}{
