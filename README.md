@@ -8,7 +8,7 @@
 A GoLang implementation of an MCP (Model Context Protocol) server for incident.io, providing comprehensive tools to interact with the incident.io API. Built following industry-standard Go project layout patterns.
 
 > ⚠️ **Fair warning!** ⚠️  
-> This repository is largely vibe-coded and unsupported. Built by our CMO and an enterprising Solutions Engineer with questionable coding practices but undeniable enthusiasm. Use at your own risk! 🚀
+> We're experimenting a fair bit in the MCP space, so use at your own risk! 🚀 If you find issues, please raise issues in the repository.
 
 ## 🚀 Quick Start
 
