@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/incident-io/incidentio-mcp-golang/internal/client"
 )
@@ -22,7 +23,11 @@ func (t *ListAlertsTool) Name() string {
 
 func (t *ListAlertsTool) Description() string {
 	return "List alerts from incident.io with optional filters. Returns paginated results.\n\n" +
-		"🚨 CRITICAL PAGINATION REQUIREMENT:\n" +
+		"TITLE SEARCH:\n" +
+		"Use 'title' for case-insensitive substring search on alert titles. " +
+		"Auto-paginates all pages and returns up to 50 matches — no manual pagination needed. " +
+		"Combine with alert_source_id or date filters to narrow server-side results.\n\n" +
+		"🚨 CRITICAL PAGINATION REQUIREMENT (when not using title search):\n" +
 		"1. Start with page_size=25 (API default)\n" +
 		"2. Check pagination_meta.after in response\n" +
 		"3. If 'after' exists, you MUST call again with after parameter\n" +
@@ -32,6 +37,7 @@ func (t *ListAlertsTool) Description() string {
 		"📊 Always check if there are more pages before concluding your analysis!\n\n" +
 		"FILTERING:\n" +
 		"- Use status to filter by alert status (firing, resolved, etc.)\n" +
+		"- Use alert_source_id to filter by alert source (server-side)\n" +
 		"- Use created_at_gte/created_at_lte to filter by creation date\n" +
 		"- Use created_at_date_range for date range filtering (format: '2024-12-02~2024-12-08')\n" +
 		"- Use deduplication_key to filter by specific deduplication key\n" +
@@ -44,8 +50,9 @@ func (t *ListAlertsTool) Description() string {
 		"- Past month: created_at_gte=\"2025-01-15\" (calculate 30 days ago)\n" +
 		"- Before date: created_at_lte=\"2025-01-15\"\n" +
 		"- Date format: '2025-08-29' (date only, no time)\n\n" +
-		"PAGINATION EXAMPLE:\n" +
-		"User: 'alerts with Sentry in name for past week'\n" +
+		"PAGINATION EXAMPLES:\n" +
+		"Title search: list_alerts({\"title\": \"Sentry\", \"created_at_gte\": \"2025-01-08\"})\n" +
+		"Manual pagination:\n" +
 		"1. list_alerts({\"created_at_gte\": \"2025-01-08\", \"page_size\": 25})\n" +
 		"2. If pagination_meta.after exists, call again with after parameter\n" +
 		"3. Continue until pagination_meta.after is empty\n" +
@@ -57,6 +64,10 @@ func (t *ListAlertsTool) InputSchema() map[string]interface{} {
 	return map[string]interface{}{
 		"type": "object",
 		"properties": map[string]interface{}{
+			"title": map[string]interface{}{
+				"type":        "string",
+				"description": "Case-insensitive substring search on alert title. Auto-paginates all pages and returns up to 50 matches. When set, page_size and after are ignored.",
+			},
 			"page_size": map[string]interface{}{
 				"type":        "integer",
 				"description": "Number of results per page (1-50). Default is 25 (API default). Use smaller values if you need fewer results.",
@@ -77,6 +88,10 @@ func (t *ListAlertsTool) InputSchema() map[string]interface{} {
 				"type":        "string",
 				"description": "Filter by deduplication key. Exact match required.",
 			},
+			"alert_source_id": map[string]interface{}{
+				"type":        "string",
+				"description": "Filter by alert source ID (exact match, server-side).",
+			},
 			"created_at_gte": map[string]interface{}{
 				"type":        "string",
 				"description": "Filter alerts created on or after this date. Format: '2025-01-15' (date only, no time)",
@@ -94,20 +109,68 @@ func (t *ListAlertsTool) InputSchema() map[string]interface{} {
 }
 
 func (t *ListAlertsTool) Execute(args map[string]interface{}) (string, error) {
-	opts := &client.ListAlertsOptions{
-		PageSize: GetIntArg(args, "page_size", 25), // Use API default page size
-		After:    GetStringArg(args, "after"),
-	}
+	titleFilter := strings.ToLower(GetStringArg(args, "title"))
 
+	// Server-side filters
+	opts := &client.ListAlertsOptions{}
 	opts.Status = GetStringArrayArg(args, "status")
-
-	if deduplicationKey := GetStringArg(args, "deduplication_key"); deduplicationKey != "" {
-		opts.DeduplicationKey = deduplicationKey
+	if dk := GetStringArg(args, "deduplication_key"); dk != "" {
+		opts.DeduplicationKey = dk
 	}
-
+	if asi := GetStringArg(args, "alert_source_id"); asi != "" {
+		opts.AlertSourceID = asi
+	}
 	opts.CreatedAtGte = GetStringArg(args, "created_at_gte")
 	opts.CreatedAtLte = GetStringArg(args, "created_at_lte")
 	opts.CreatedAtDateRange = GetStringArg(args, "created_at_date_range")
+
+	// Auto-paginating title search
+	if titleFilter != "" {
+		opts.PageSize = 50 // max API page size
+		var matched []client.Alert
+		pagesScanned := 0
+
+		for pagesScanned < maxSearchPages {
+			resp, err := t.apiClient.ListAlerts(opts)
+			if err != nil {
+				return "", err
+			}
+			pagesScanned++
+
+			for i := range resp.Alerts {
+				if strings.Contains(strings.ToLower(resp.Alerts[i].Title), titleFilter) {
+					matched = append(matched, resp.Alerts[i])
+					if len(matched) >= maxSearchResults {
+						break
+					}
+				}
+			}
+
+			if len(matched) >= maxSearchResults || resp.PaginationMeta.After == "" {
+				break
+			}
+			opts.After = resp.PaginationMeta.After
+		}
+
+		response := map[string]interface{}{
+			"alerts":        matched,
+			"count":         len(matched),
+			"title_filter":  titleFilter,
+			"pages_scanned": pagesScanned,
+		}
+		if len(matched) >= maxSearchResults {
+			response["truncated"] = true
+			response["note"] = fmt.Sprintf("Result limit (%d) reached. Narrow with date/status filters.", maxSearchResults)
+		} else if pagesScanned >= maxSearchPages {
+			response["scan_truncated"] = true
+			response["note"] = fmt.Sprintf("Page limit (%d) reached. Use date or alert_source_id filters to narrow results.", maxSearchPages)
+		}
+		return FormatJSONResponse(response)
+	}
+
+	// Standard single-page mode
+	opts.PageSize = GetIntArg(args, "page_size", 25)
+	opts.After = GetStringArg(args, "after")
 
 	resp, err := t.apiClient.ListAlerts(opts)
 	if err != nil {

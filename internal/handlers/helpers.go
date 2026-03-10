@@ -5,6 +5,11 @@ import (
 	"fmt"
 )
 
+const (
+	maxSearchResults = 50
+	maxSearchPages   = 50
+)
+
 // FormatJSONResponse is a simple helper to eliminate JSON marshaling duplication
 func FormatJSONResponse(response interface{}) (string, error) {
 	result, err := json.MarshalIndent(response, "", "  ")

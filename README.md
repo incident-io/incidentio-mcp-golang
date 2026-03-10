@@ -82,7 +82,7 @@ cp .env.example .env
 
 ### Incident Management
 
-- `list_incidents` - List incidents with optional filters
+- `list_incidents` - List incidents with optional filters and auto-paginating name search
 - `get_incident` - Get details of a specific incident
 - `create_incident` - Create a new incident
 - `update_incident` - Update an existing incident
@@ -102,7 +102,7 @@ cp .env.example .env
 
 ### Alert Management
 
-- `list_alerts` - List alerts with optional filters
+- `list_alerts` - List alerts with optional filters, title search, and alert source filtering
 - `get_alert` - Get details of a specific alert
 - `list_incident_alerts` - List connections between incidents and alerts
 - `create_alert_event` - Create an alert event
