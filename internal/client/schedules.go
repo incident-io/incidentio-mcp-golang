@@ -21,7 +21,7 @@ type Schedule struct {
 
 // ScheduleEntry represents a single on-call entry with start/end times and user
 type ScheduleEntry struct {
-	EntryID     string    `json:"entry_id"`
+	EntryID     string    `json:"entry_id,omitempty"`
 	StartAt     time.Time `json:"start_at"`
 	EndAt       time.Time `json:"end_at"`
 	RotationID  string    `json:"rotation_id,omitempty"`
