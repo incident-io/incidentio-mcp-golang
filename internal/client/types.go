@@ -9,6 +9,7 @@ type Incident struct {
 	Name                    string             `json:"name"`
 	Summary                 string             `json:"summary,omitempty"`
 	Permalink               string             `json:"permalink"`
+	PostmortemDocumentURL   string             `json:"postmortem_document_url,omitempty"`
 	IncidentStatus          IncidentStatus     `json:"incident_status"`
 	Severity                Severity           `json:"severity"`
 	IncidentType            IncidentType       `json:"incident_type"`
