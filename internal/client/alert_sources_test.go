@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"net/http"
 	"testing"
 )
@@ -104,7 +105,7 @@ func TestListAlertSources(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			result, err := client.ListAlertSources(tt.params)
+			result, err := client.ListAlertSources(context.Background(), tt.params)
 
 			if tt.wantError {
 				assertError(t, err)

@@ -1,19 +1,15 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
 )
 
 // ListCatalogTypes returns all catalog types
-func (c *Client) ListCatalogTypes() (*ListCatalogTypesResponse, error) {
-	// Catalog API uses V3, need to temporarily change the base URL
-	originalBaseURL := c.BaseURL()
-	c.SetBaseURL("https://api.incident.io/v3")
-	defer func() { c.SetBaseURL(originalBaseURL) }()
-
-	respBody, err := c.doRequest("GET", "/catalog_types", nil, nil)
+func (c *Client) ListCatalogTypes(ctx context.Context) (*ListCatalogTypesResponse, error) {
+	respBody, err := c.doRequestWithBase(ctx, BaseURLV3, "GET", "/catalog_types", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -35,12 +31,7 @@ type ListCatalogEntriesOptions struct {
 }
 
 // ListCatalogEntries returns catalog entries for a given type
-func (c *Client) ListCatalogEntries(opts ListCatalogEntriesOptions) (*ListCatalogEntriesResponse, error) {
-	// Catalog API uses V3, need to temporarily change the base URL
-	originalBaseURL := c.BaseURL()
-	c.SetBaseURL("https://api.incident.io/v3")
-	defer func() { c.SetBaseURL(originalBaseURL) }()
-
+func (c *Client) ListCatalogEntries(ctx context.Context, opts ListCatalogEntriesOptions) (*ListCatalogEntriesResponse, error) {
 	// Set default page_size if not provided (required by API)
 	pageSize := opts.PageSize
 	if pageSize == 0 {
@@ -59,7 +50,7 @@ func (c *Client) ListCatalogEntries(opts ListCatalogEntriesOptions) (*ListCatalo
 		params.Set("identifier", opts.Identifier)
 	}
 
-	respBody, err := c.doRequest("GET", "/catalog_entries", params, nil)
+	respBody, err := c.doRequestWithBase(ctx, BaseURLV3, "GET", "/catalog_entries", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -73,13 +64,8 @@ func (c *Client) ListCatalogEntries(opts ListCatalogEntriesOptions) (*ListCatalo
 }
 
 // UpdateCatalogEntry updates a catalog entry by ID
-func (c *Client) UpdateCatalogEntry(id string, req UpdateCatalogEntryRequest) (*CatalogEntry, error) {
-	// Catalog API uses V3, need to temporarily change the base URL
-	originalBaseURL := c.BaseURL()
-	c.SetBaseURL("https://api.incident.io/v3")
-	defer func() { c.SetBaseURL(originalBaseURL) }()
-
-	respBody, err := c.doRequest("PUT", fmt.Sprintf("/catalog_entries/%s", id), nil, req)
+func (c *Client) UpdateCatalogEntry(ctx context.Context, id string, req UpdateCatalogEntryRequest) (*CatalogEntry, error) {
+	respBody, err := c.doRequestWithBase(ctx, BaseURLV3, "PUT", fmt.Sprintf("/catalog_entries/%s", id), nil, req)
 	if err != nil {
 		return nil, err
 	}
@@ -95,13 +81,8 @@ func (c *Client) UpdateCatalogEntry(id string, req UpdateCatalogEntryRequest) (*
 }
 
 // GetCatalogEntry retrieves a specific catalog entry by ID
-func (c *Client) GetCatalogEntry(id string) (*CatalogEntry, error) {
-	// Catalog API uses V3, need to temporarily change the base URL
-	originalBaseURL := c.BaseURL()
-	c.SetBaseURL("https://api.incident.io/v3")
-	defer func() { c.SetBaseURL(originalBaseURL) }()
-
-	respBody, err := c.doRequest("GET", fmt.Sprintf("/catalog_entries/%s", id), nil, nil)
+func (c *Client) GetCatalogEntry(ctx context.Context, id string) (*CatalogEntry, error) {
+	respBody, err := c.doRequestWithBase(ctx, BaseURLV3, "GET", fmt.Sprintf("/catalog_entries/%s", id), nil, nil)
 	if err != nil {
 		return nil, err
 	}

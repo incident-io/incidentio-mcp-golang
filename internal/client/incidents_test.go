@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"net/http"
 	"testing"
 )
@@ -154,7 +155,7 @@ func TestListIncidents(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			result, err := client.ListIncidents(tt.params)
+			result, err := client.ListIncidents(context.Background(), tt.params)
 
 			if tt.wantError {
 				assertError(t, err)
@@ -250,7 +251,7 @@ func TestGetIncident(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			incident, err := client.GetIncident(tt.incidentID)
+			incident, err := client.GetIncident(context.Background(), tt.incidentID)
 
 			if tt.wantError {
 				assertError(t, err)
@@ -391,7 +392,7 @@ func TestCreateIncident(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			incident, err := client.CreateIncident(tt.request)
+			incident, err := client.CreateIncident(context.Background(), tt.request)
 
 			if tt.wantError {
 				assertError(t, err)
@@ -503,7 +504,7 @@ func TestUpdateIncident(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			incident, err := client.UpdateIncident(tt.incidentID, tt.request)
+			incident, err := client.UpdateIncident(context.Background(), tt.incidentID, tt.request)
 
 			if tt.wantError {
 				assertError(t, err)

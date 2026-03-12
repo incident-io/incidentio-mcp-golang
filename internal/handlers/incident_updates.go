@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/incident-io/incidentio-mcp-golang/internal/client"
@@ -50,13 +51,13 @@ func (t *ListIncidentUpdatesTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListIncidentUpdatesTool) Execute(args map[string]interface{}) (string, error) {
+func (t *ListIncidentUpdatesTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	opts := &client.ListIncidentUpdatesOptions{
 		IncidentID: GetStringArg(args, "incident_id"),
 		PageSize:   GetIntArg(args, "page_size", 25),
 	}
 
-	resp, err := t.apiClient.ListIncidentUpdates(opts)
+	resp, err := t.apiClient.ListIncidentUpdates(ctx, opts)
 	if err != nil {
 		return "", err
 	}
@@ -95,13 +96,13 @@ func (t *GetIncidentUpdateTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *GetIncidentUpdateTool) Execute(args map[string]interface{}) (string, error) {
+func (t *GetIncidentUpdateTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id := GetStringArg(args, "id")
 	if id == "" {
 		return "", fmt.Errorf("id parameter is required")
 	}
 
-	update, err := t.apiClient.GetIncidentUpdate(id)
+	update, err := t.apiClient.GetIncidentUpdate(ctx, id)
 	if err != nil {
 		return "", err
 	}
@@ -144,7 +145,7 @@ func (t *CreateIncidentUpdateTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *CreateIncidentUpdateTool) Execute(args map[string]interface{}) (string, error) {
+func (t *CreateIncidentUpdateTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	incidentID, ok := args["incident_id"].(string)
 	if !ok || incidentID == "" {
 		return "", fmt.Errorf("incident_id parameter is required")
@@ -160,7 +161,7 @@ func (t *CreateIncidentUpdateTool) Execute(args map[string]interface{}) (string,
 		Message:    message,
 	}
 
-	update, err := t.apiClient.CreateIncidentUpdate(req)
+	update, err := t.apiClient.CreateIncidentUpdate(ctx, req)
 	if err != nil {
 		return "", err
 	}
@@ -199,13 +200,13 @@ func (t *DeleteIncidentUpdateTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *DeleteIncidentUpdateTool) Execute(args map[string]interface{}) (string, error) {
+func (t *DeleteIncidentUpdateTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id, ok := args["id"].(string)
 	if !ok || id == "" {
 		return "", fmt.Errorf("id parameter is required")
 	}
 
-	if err := t.apiClient.DeleteIncidentUpdate(id); err != nil {
+	if err := t.apiClient.DeleteIncidentUpdate(ctx, id); err != nil {
 		return "", err
 	}
 

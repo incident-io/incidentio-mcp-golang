@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -23,7 +24,7 @@ type ListActionsResponse struct {
 
 // ListActions retrieves a single page of actions
 // Pagination is controlled by the caller using PageSize and After parameters
-func (c *Client) ListActions(opts *ListActionsOptions) (*ListActionsResponse, error) {
+func (c *Client) ListActions(ctx context.Context, opts *ListActionsOptions) (*ListActionsResponse, error) {
 	pageSize := 10 // Conservative default to avoid exceeding MCP client limits
 	after := ""
 
@@ -52,7 +53,7 @@ func (c *Client) ListActions(opts *ListActionsOptions) (*ListActionsResponse, er
 		}
 	}
 
-	respBody, err := c.doRequest("GET", "/actions", params, nil)
+	respBody, err := c.doRequest(ctx, "GET", "/actions", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -66,8 +67,8 @@ func (c *Client) ListActions(opts *ListActionsOptions) (*ListActionsResponse, er
 }
 
 // GetAction retrieves a specific action by ID
-func (c *Client) GetAction(id string) (*Action, error) {
-	respBody, err := c.doRequest("GET", fmt.Sprintf("/actions/%s", id), nil, nil)
+func (c *Client) GetAction(ctx context.Context, id string) (*Action, error) {
+	respBody, err := c.doRequest(ctx, "GET", fmt.Sprintf("/actions/%s", id), nil, nil)
 	if err != nil {
 		return nil, err
 	}

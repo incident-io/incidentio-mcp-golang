@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -22,7 +23,7 @@ type ListWorkflowsResponse struct {
 }
 
 // ListWorkflows returns all workflows
-func (c *Client) ListWorkflows(params *ListWorkflowsParams) (*ListWorkflowsResponse, error) {
+func (c *Client) ListWorkflows(ctx context.Context, params *ListWorkflowsParams) (*ListWorkflowsResponse, error) {
 	endpoint := "/workflows"
 
 	// Set default page size
@@ -41,7 +42,7 @@ func (c *Client) ListWorkflows(params *ListWorkflowsParams) (*ListWorkflowsRespo
 		endpoint = endpoint + "?" + v.Encode()
 	}
 
-	respBody, err := c.doRequest("GET", endpoint, nil, nil)
+	respBody, err := c.doRequest(ctx, "GET", endpoint, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -55,10 +56,10 @@ func (c *Client) ListWorkflows(params *ListWorkflowsParams) (*ListWorkflowsRespo
 }
 
 // GetWorkflow returns a specific workflow by ID
-func (c *Client) GetWorkflow(id string) (*Workflow, error) {
+func (c *Client) GetWorkflow(ctx context.Context, id string) (*Workflow, error) {
 	endpoint := fmt.Sprintf("/workflows/%s", id)
 
-	respBody, err := c.doRequest("GET", endpoint, nil, nil)
+	respBody, err := c.doRequest(ctx, "GET", endpoint, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -81,10 +82,10 @@ type UpdateWorkflowRequest struct {
 }
 
 // UpdateWorkflow updates a workflow
-func (c *Client) UpdateWorkflow(id string, req *UpdateWorkflowRequest) (*Workflow, error) {
+func (c *Client) UpdateWorkflow(ctx context.Context, id string, req *UpdateWorkflowRequest) (*Workflow, error) {
 	endpoint := fmt.Sprintf("/workflows/%s", id)
 
-	respBody, err := c.doRequest("PATCH", endpoint, nil, req)
+	respBody, err := c.doRequest(ctx, "PATCH", endpoint, nil, req)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -8,13 +9,7 @@ import (
 )
 
 // ListPostmortems retrieves all postmortem documents for an organization
-func (c *Client) ListPostmortems(opts *ListPostmortemsOptions) (*ListPostmortemsResponse, error) {
-	// Note: Postmortems are under V1 API, not V2
-	// We need to temporarily change the base URL for this request
-	originalBaseURL := c.BaseURL()
-	c.SetBaseURL("https://api.incident.io/v1")
-	defer func() { c.SetBaseURL(originalBaseURL) }()
-
+func (c *Client) ListPostmortems(ctx context.Context, opts *ListPostmortemsOptions) (*ListPostmortemsResponse, error) {
 	params := url.Values{}
 
 	if opts != nil {
@@ -32,7 +27,7 @@ func (c *Client) ListPostmortems(opts *ListPostmortemsOptions) (*ListPostmortems
 		}
 	}
 
-	respBody, err := c.doRequest("GET", "/postmortem_documents", params, nil)
+	respBody, err := c.doRequestWithBase(ctx, BaseURLV1, "GET", "/postmortem_documents", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -46,14 +41,8 @@ func (c *Client) ListPostmortems(opts *ListPostmortemsOptions) (*ListPostmortems
 }
 
 // GetPostmortem retrieves a specific postmortem document by ID
-func (c *Client) GetPostmortem(id string) (*PostmortemDocument, error) {
-	// Note: Postmortems are under V1 API, not V2
-	// We need to temporarily change the base URL for this request
-	originalBaseURL := c.BaseURL()
-	c.SetBaseURL("https://api.incident.io/v1")
-	defer func() { c.SetBaseURL(originalBaseURL) }()
-
-	respBody, err := c.doRequest("GET", fmt.Sprintf("/postmortem_documents/%s", id), nil, nil)
+func (c *Client) GetPostmortem(ctx context.Context, id string) (*PostmortemDocument, error) {
+	respBody, err := c.doRequestWithBase(ctx, BaseURLV1, "GET", fmt.Sprintf("/postmortem_documents/%s", id), nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -69,14 +58,8 @@ func (c *Client) GetPostmortem(id string) (*PostmortemDocument, error) {
 }
 
 // GetPostmortemContent retrieves the markdown content of a postmortem document
-func (c *Client) GetPostmortemContent(id string) (*PostmortemContentResponse, error) {
-	// Note: Postmortems are under V1 API, not V2
-	// We need to temporarily change the base URL for this request
-	originalBaseURL := c.BaseURL()
-	c.SetBaseURL("https://api.incident.io/v1")
-	defer func() { c.SetBaseURL(originalBaseURL) }()
-
-	respBody, err := c.doRequest("GET", fmt.Sprintf("/postmortem_documents/%s/content", id), nil, nil)
+func (c *Client) GetPostmortemContent(ctx context.Context, id string) (*PostmortemContentResponse, error) {
+	respBody, err := c.doRequestWithBase(ctx, BaseURLV1, "GET", fmt.Sprintf("/postmortem_documents/%s/content", id), nil, nil)
 	if err != nil {
 		return nil, err
 	}

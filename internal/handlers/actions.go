@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/incident-io/incidentio-mcp-golang/internal/client"
@@ -52,7 +53,7 @@ func (t *ListActionsTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListActionsTool) Execute(args map[string]interface{}) (string, error) {
+func (t *ListActionsTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	opts := &client.ListActionsOptions{
 		PageSize: GetIntArg(args, "page_size", 10), // Default to small page size to avoid exceeding Claude's 1MB limit
 		After:    GetStringArg(args, "after"),
@@ -64,7 +65,7 @@ func (t *ListActionsTool) Execute(args map[string]interface{}) (string, error) {
 
 	opts.Status = GetStringArrayArg(args, "status")
 
-	resp, err := t.apiClient.ListActions(opts)
+	resp, err := t.apiClient.ListActions(ctx, opts)
 	if err != nil {
 		return "", err
 	}
@@ -114,13 +115,13 @@ func (t *GetActionTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *GetActionTool) Execute(args map[string]interface{}) (string, error) {
+func (t *GetActionTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id := GetStringArg(args, "id")
 	if id == "" {
 		return "", fmt.Errorf("id parameter is required")
 	}
 
-	action, err := t.apiClient.GetAction(id)
+	action, err := t.apiClient.GetAction(ctx, id)
 	if err != nil {
 		return "", err
 	}

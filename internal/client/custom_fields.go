@@ -1,14 +1,15 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
 )
 
 // ListCustomFields retrieves all custom fields
-func (c *Client) ListCustomFields() (*ListCustomFieldsResponse, error) {
-	respBody, err := c.doRequest("GET", "/custom_fields", nil, nil)
+func (c *Client) ListCustomFields(ctx context.Context) (*ListCustomFieldsResponse, error) {
+	respBody, err := c.doRequest(ctx, "GET", "/custom_fields", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -22,8 +23,8 @@ func (c *Client) ListCustomFields() (*ListCustomFieldsResponse, error) {
 }
 
 // GetCustomField retrieves a specific custom field by ID
-func (c *Client) GetCustomField(id string) (*CustomField, error) {
-	respBody, err := c.doRequest("GET", fmt.Sprintf("/custom_fields/%s", id), nil, nil)
+func (c *Client) GetCustomField(ctx context.Context, id string) (*CustomField, error) {
+	respBody, err := c.doRequest(ctx, "GET", fmt.Sprintf("/custom_fields/%s", id), nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -39,8 +40,8 @@ func (c *Client) GetCustomField(id string) (*CustomField, error) {
 }
 
 // CreateCustomField creates a new custom field
-func (c *Client) CreateCustomField(req *CreateCustomFieldRequest) (*CustomField, error) {
-	respBody, err := c.doRequest("POST", "/custom_fields", nil, req)
+func (c *Client) CreateCustomField(ctx context.Context, req *CreateCustomFieldRequest) (*CustomField, error) {
+	respBody, err := c.doRequest(ctx, "POST", "/custom_fields", nil, req)
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +57,8 @@ func (c *Client) CreateCustomField(req *CreateCustomFieldRequest) (*CustomField,
 }
 
 // UpdateCustomField updates an existing custom field
-func (c *Client) UpdateCustomField(id string, req *UpdateCustomFieldRequest) (*CustomField, error) {
-	respBody, err := c.doRequest("PUT", fmt.Sprintf("/custom_fields/%s", id), nil, req)
+func (c *Client) UpdateCustomField(ctx context.Context, id string, req *UpdateCustomFieldRequest) (*CustomField, error) {
+	respBody, err := c.doRequest(ctx, "PUT", fmt.Sprintf("/custom_fields/%s", id), nil, req)
 	if err != nil {
 		return nil, err
 	}
@@ -73,14 +74,14 @@ func (c *Client) UpdateCustomField(id string, req *UpdateCustomFieldRequest) (*C
 }
 
 // DeleteCustomField deletes a custom field
-func (c *Client) DeleteCustomField(id string) error {
-	_, err := c.doRequest("DELETE", fmt.Sprintf("/custom_fields/%s", id), nil, nil)
+func (c *Client) DeleteCustomField(ctx context.Context, id string) error {
+	_, err := c.doRequest(ctx, "DELETE", fmt.Sprintf("/custom_fields/%s", id), nil, nil)
 	return err
 }
 
 // ListCustomFieldOptions retrieves all options for custom fields
-func (c *Client) ListCustomFieldOptions() ([]CustomFieldOption, error) {
-	respBody, err := c.doRequest("GET", "/custom_field_options", nil, nil)
+func (c *Client) ListCustomFieldOptions(ctx context.Context) ([]CustomFieldOption, error) {
+	respBody, err := c.doRequest(ctx, "GET", "/custom_field_options", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -96,8 +97,8 @@ func (c *Client) ListCustomFieldOptions() ([]CustomFieldOption, error) {
 }
 
 // GetCustomFieldOption retrieves a specific custom field option by ID
-func (c *Client) GetCustomFieldOption(id string) (*CustomFieldOption, error) {
-	respBody, err := c.doRequest("GET", fmt.Sprintf("/custom_field_options/%s", id), nil, nil)
+func (c *Client) GetCustomFieldOption(ctx context.Context, id string) (*CustomFieldOption, error) {
+	respBody, err := c.doRequest(ctx, "GET", fmt.Sprintf("/custom_field_options/%s", id), nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -113,8 +114,8 @@ func (c *Client) GetCustomFieldOption(id string) (*CustomFieldOption, error) {
 }
 
 // CreateCustomFieldOption creates a new custom field option
-func (c *Client) CreateCustomFieldOption(req *CreateCustomFieldOptionRequest) (*CustomFieldOption, error) {
-	respBody, err := c.doRequest("POST", "/custom_field_options", nil, req)
+func (c *Client) CreateCustomFieldOption(ctx context.Context, req *CreateCustomFieldOptionRequest) (*CustomFieldOption, error) {
+	respBody, err := c.doRequest(ctx, "POST", "/custom_field_options", nil, req)
 	if err != nil {
 		return nil, err
 	}
@@ -130,8 +131,8 @@ func (c *Client) CreateCustomFieldOption(req *CreateCustomFieldOptionRequest) (*
 }
 
 // UpdateCustomFieldOption updates an existing custom field option
-func (c *Client) UpdateCustomFieldOption(id string, req *UpdateCustomFieldOptionRequest) (*CustomFieldOption, error) {
-	respBody, err := c.doRequest("PUT", fmt.Sprintf("/custom_field_options/%s", id), nil, req)
+func (c *Client) UpdateCustomFieldOption(ctx context.Context, id string, req *UpdateCustomFieldOptionRequest) (*CustomFieldOption, error) {
+	respBody, err := c.doRequest(ctx, "PUT", fmt.Sprintf("/custom_field_options/%s", id), nil, req)
 	if err != nil {
 		return nil, err
 	}
@@ -147,13 +148,13 @@ func (c *Client) UpdateCustomFieldOption(id string, req *UpdateCustomFieldOption
 }
 
 // DeleteCustomFieldOption deletes a custom field option
-func (c *Client) DeleteCustomFieldOption(id string) error {
-	_, err := c.doRequest("DELETE", fmt.Sprintf("/custom_field_options/%s", id), nil, nil)
+func (c *Client) DeleteCustomFieldOption(ctx context.Context, id string) error {
+	_, err := c.doRequest(ctx, "DELETE", fmt.Sprintf("/custom_field_options/%s", id), nil, nil)
 	return err
 }
 
 // SearchCustomFields searches for custom fields by name or field type
-func (c *Client) SearchCustomFields(query string, fieldType string) ([]CustomField, error) {
+func (c *Client) SearchCustomFields(ctx context.Context, query string, fieldType string) ([]CustomField, error) {
 	params := url.Values{}
 	if query != "" {
 		params.Set("query", query)
@@ -162,7 +163,7 @@ func (c *Client) SearchCustomFields(query string, fieldType string) ([]CustomFie
 		params.Set("field_type", fieldType)
 	}
 
-	respBody, err := c.doRequest("GET", "/custom_fields", params, nil)
+	respBody, err := c.doRequest(ctx, "GET", "/custom_fields", params, nil)
 	if err != nil {
 		return nil, err
 	}

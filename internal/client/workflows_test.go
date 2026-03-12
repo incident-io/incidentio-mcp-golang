@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"net/http"
 	"testing"
 )
@@ -75,7 +76,7 @@ func TestListWorkflows(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			result, err := client.ListWorkflows(tt.params)
+			result, err := client.ListWorkflows(context.Background(), tt.params)
 
 			if tt.wantError {
 				assertError(t, err)
@@ -146,7 +147,7 @@ func TestGetWorkflow(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			workflow, err := client.GetWorkflow(tt.workflowID)
+			workflow, err := client.GetWorkflow(context.Background(), tt.workflowID)
 
 			if tt.wantError {
 				assertError(t, err)
@@ -234,7 +235,7 @@ func TestUpdateWorkflow(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			workflow, err := client.UpdateWorkflow(tt.workflowID, tt.request)
+			workflow, err := client.UpdateWorkflow(context.Background(), tt.workflowID, tt.request)
 
 			if tt.wantError {
 				assertError(t, err)
@@ -306,7 +307,7 @@ func TestWorkflowTriggerObjectParsing(t *testing.T) {
 	}
 
 	client := NewTestClient(mockClient)
-	result, err := client.ListWorkflows(nil)
+	result, err := client.ListWorkflows(context.Background(), nil)
 
 	assertNoError(t, err)
 	if len(result.Workflows) != 2 {

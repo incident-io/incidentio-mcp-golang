@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/incident-io/incidentio-mcp-golang/internal/client"
@@ -65,13 +66,13 @@ func (t *ListFollowUpsTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListFollowUpsTool) Execute(args map[string]interface{}) (string, error) {
+func (t *ListFollowUpsTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	opts := &client.ListFollowUpsOptions{
 		IncidentID:   t.ValidateOptionalString(args, "incident_id"),
 		IncidentMode: t.ValidateOptionalString(args, "incident_mode"),
 	}
 
-	resp, err := t.GetClient().ListFollowUps(opts)
+	resp, err := t.GetClient().ListFollowUps(ctx, opts)
 	if err != nil {
 		return "", err
 	}
@@ -129,13 +130,13 @@ func (t *GetFollowUpTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *GetFollowUpTool) Execute(args map[string]interface{}) (string, error) {
+func (t *GetFollowUpTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id, err := t.ValidateRequiredString(args, "id")
 	if err != nil {
 		return "", err
 	}
 
-	followUp, err := t.GetClient().GetFollowUp(id)
+	followUp, err := t.GetClient().GetFollowUp(ctx, id)
 	if err != nil {
 		return "", err
 	}

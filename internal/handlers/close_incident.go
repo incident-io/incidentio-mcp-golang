@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -37,14 +38,14 @@ func (t *CloseIncidentTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *CloseIncidentTool) Execute(args map[string]interface{}) (string, error) {
+func (t *CloseIncidentTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id, ok := args["id"].(string)
 	if !ok {
 		return "", fmt.Errorf("id parameter is required")
 	}
 
 	// Get the current incident first
-	incident, err := t.apiClient.GetIncident(id)
+	incident, err := t.apiClient.GetIncident(ctx, id)
 	if err != nil {
 		return "", fmt.Errorf("failed to get incident: %w", err)
 	}
@@ -63,7 +64,7 @@ func (t *CloseIncidentTool) Execute(args map[string]interface{}) (string, error)
 		IncidentStatusID: closedStatusID,
 	}
 
-	updatedIncident, err := t.apiClient.UpdateIncident(id, req)
+	updatedIncident, err := t.apiClient.UpdateIncident(ctx, id, req)
 	if err != nil {
 		// If direct closure fails, provide helpful guidance
 		return fmt.Sprintf(`Failed to close incident directly: %v

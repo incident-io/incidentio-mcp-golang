@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/incident-io/incidentio-mcp-golang/internal/client"
@@ -42,13 +43,13 @@ func (t *ListWorkflowsTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListWorkflowsTool) Execute(args map[string]interface{}) (string, error) {
+func (t *ListWorkflowsTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	params := &client.ListWorkflowsParams{
 		PageSize: GetIntArg(args, "page_size", 25),
 		After:    GetStringArg(args, "after"),
 	}
 
-	result, err := t.apiClient.ListWorkflows(params)
+	result, err := t.apiClient.ListWorkflows(ctx, params)
 	if err != nil {
 		return "", fmt.Errorf("failed to list workflows: %w", err)
 	}
@@ -88,13 +89,13 @@ func (t *GetWorkflowTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *GetWorkflowTool) Execute(args map[string]interface{}) (string, error) {
+func (t *GetWorkflowTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id := GetStringArg(args, "id")
 	if id == "" {
 		return "", fmt.Errorf("workflow ID is required")
 	}
 
-	workflow, err := t.apiClient.GetWorkflow(id)
+	workflow, err := t.apiClient.GetWorkflow(ctx, id)
 	if err != nil {
 		return "", fmt.Errorf("failed to get workflow: %w", err)
 	}
@@ -146,7 +147,7 @@ func (t *UpdateWorkflowTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *UpdateWorkflowTool) Execute(args map[string]interface{}) (string, error) {
+func (t *UpdateWorkflowTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id, ok := args["id"].(string)
 	if !ok || id == "" {
 		return "", fmt.Errorf("workflow ID is required")
@@ -166,7 +167,7 @@ func (t *UpdateWorkflowTool) Execute(args map[string]interface{}) (string, error
 		req.State = state
 	}
 
-	workflow, err := t.apiClient.UpdateWorkflow(id, req)
+	workflow, err := t.apiClient.UpdateWorkflow(ctx, id, req)
 	if err != nil {
 		return "", fmt.Errorf("failed to update workflow: %w", err)
 	}

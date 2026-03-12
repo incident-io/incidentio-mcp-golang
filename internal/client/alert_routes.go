@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -22,7 +23,7 @@ type ListAlertRoutesResponse struct {
 }
 
 // ListAlertRoutes returns all alert routes
-func (c *Client) ListAlertRoutes(params *ListAlertRoutesParams) (*ListAlertRoutesResponse, error) {
+func (c *Client) ListAlertRoutes(ctx context.Context, params *ListAlertRoutesParams) (*ListAlertRoutesResponse, error) {
 	endpoint := "/alert_routes"
 
 	// Set default page size
@@ -41,7 +42,7 @@ func (c *Client) ListAlertRoutes(params *ListAlertRoutesParams) (*ListAlertRoute
 		endpoint = endpoint + "?" + v.Encode()
 	}
 
-	respBody, err := c.doRequest("GET", endpoint, nil, nil)
+	respBody, err := c.doRequest(ctx, "GET", endpoint, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -55,10 +56,10 @@ func (c *Client) ListAlertRoutes(params *ListAlertRoutesParams) (*ListAlertRoute
 }
 
 // GetAlertRoute returns a specific alert route by ID
-func (c *Client) GetAlertRoute(id string) (*AlertRoute, error) {
+func (c *Client) GetAlertRoute(ctx context.Context, id string) (*AlertRoute, error) {
 	endpoint := fmt.Sprintf("/alert_routes/%s", id)
 
-	respBody, err := c.doRequest("GET", endpoint, nil, nil)
+	respBody, err := c.doRequest(ctx, "GET", endpoint, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -84,10 +85,10 @@ type CreateAlertRouteRequest struct {
 }
 
 // CreateAlertRoute creates a new alert route
-func (c *Client) CreateAlertRoute(req *CreateAlertRouteRequest) (*AlertRoute, error) {
+func (c *Client) CreateAlertRoute(ctx context.Context, req *CreateAlertRouteRequest) (*AlertRoute, error) {
 	endpoint := "/alert_routes"
 
-	respBody, err := c.doRequest("POST", endpoint, nil, req)
+	respBody, err := c.doRequest(ctx, "POST", endpoint, nil, req)
 	if err != nil {
 		return nil, err
 	}
@@ -113,10 +114,10 @@ type UpdateAlertRouteRequest struct {
 }
 
 // UpdateAlertRoute updates an alert route
-func (c *Client) UpdateAlertRoute(id string, req *UpdateAlertRouteRequest) (*AlertRoute, error) {
+func (c *Client) UpdateAlertRoute(ctx context.Context, id string, req *UpdateAlertRouteRequest) (*AlertRoute, error) {
 	endpoint := fmt.Sprintf("/alert_routes/%s", id)
 
-	respBody, err := c.doRequest("PATCH", endpoint, nil, req)
+	respBody, err := c.doRequest(ctx, "PATCH", endpoint, nil, req)
 	if err != nil {
 		return nil, err
 	}

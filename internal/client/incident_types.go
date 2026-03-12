@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 )
@@ -13,8 +14,8 @@ type ListIncidentTypesResponse struct {
 }
 
 // ListIncidentTypes returns all incident types
-func (c *Client) ListIncidentTypes() (*ListIncidentTypesResponse, error) {
-	respBody, err := c.doRequest("GET", "/incident_types", nil, nil)
+func (c *Client) ListIncidentTypes(ctx context.Context) (*ListIncidentTypesResponse, error) {
+	respBody, err := c.doRequest(ctx, "GET", "/incident_types", nil, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 )
@@ -13,14 +14,8 @@ type ListSeveritiesResponse struct {
 }
 
 // ListSeverities returns all severities
-func (c *Client) ListSeverities() (*ListSeveritiesResponse, error) {
-	// Note: Severities are under V1 API, not V2
-	// We need to temporarily change the base URL for this request
-	originalBaseURL := c.BaseURL()
-	c.SetBaseURL("https://api.incident.io/v1")
-	defer func() { c.SetBaseURL(originalBaseURL) }()
-
-	respBody, err := c.doRequest("GET", "/severities", nil, nil)
+func (c *Client) ListSeverities(ctx context.Context) (*ListSeveritiesResponse, error) {
+	respBody, err := c.doRequestWithBase(ctx, BaseURLV1, "GET", "/severities", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -34,14 +29,8 @@ func (c *Client) ListSeverities() (*ListSeveritiesResponse, error) {
 }
 
 // GetSeverity retrieves a specific severity by ID
-func (c *Client) GetSeverity(id string) (*Severity, error) {
-	// Note: Severities are under V1 API, not V2
-	// We need to temporarily change the base URL for this request
-	originalBaseURL := c.BaseURL()
-	c.SetBaseURL("https://api.incident.io/v1")
-	defer func() { c.SetBaseURL(originalBaseURL) }()
-
-	respBody, err := c.doRequest("GET", fmt.Sprintf("/severities/%s", id), nil, nil)
+func (c *Client) GetSeverity(ctx context.Context, id string) (*Severity, error) {
+	respBody, err := c.doRequestWithBase(ctx, BaseURLV1, "GET", fmt.Sprintf("/severities/%s", id), nil, nil)
 	if err != nil {
 		return nil, err
 	}

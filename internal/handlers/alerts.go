@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -93,7 +94,7 @@ func (t *ListAlertsTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListAlertsTool) Execute(args map[string]interface{}) (string, error) {
+func (t *ListAlertsTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	opts := &client.ListAlertsOptions{
 		PageSize: GetIntArg(args, "page_size", 25), // Use API default page size
 		After:    GetStringArg(args, "after"),
@@ -109,7 +110,7 @@ func (t *ListAlertsTool) Execute(args map[string]interface{}) (string, error) {
 	opts.CreatedAtLte = GetStringArg(args, "created_at_lte")
 	opts.CreatedAtDateRange = GetStringArg(args, "created_at_date_range")
 
-	resp, err := t.apiClient.ListAlerts(opts)
+	resp, err := t.apiClient.ListAlerts(ctx, opts)
 	if err != nil {
 		return "", err
 	}
@@ -167,13 +168,13 @@ func (t *GetAlertTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *GetAlertTool) Execute(args map[string]interface{}) (string, error) {
+func (t *GetAlertTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id, ok := args["id"].(string)
 	if !ok {
 		return "", fmt.Errorf("id parameter is required")
 	}
 
-	alert, err := t.apiClient.GetAlert(id)
+	alert, err := t.apiClient.GetAlert(ctx, id)
 	if err != nil {
 		return "", err
 	}
@@ -241,7 +242,7 @@ func (t *ListIncidentAlertsTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListIncidentAlertsTool) Execute(args map[string]interface{}) (string, error) {
+func (t *ListIncidentAlertsTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	opts := &client.ListIncidentAlertsOptions{
 		PageSize: 25, // Default page size
 	}
@@ -265,7 +266,7 @@ func (t *ListIncidentAlertsTool) Execute(args map[string]interface{}) (string, e
 	// Note: According to API docs, both incident_id and alert_id are optional
 	// If neither is provided, all incident-alert connections will be returned
 
-	resp, err := t.apiClient.ListIncidentAlerts(opts)
+	resp, err := t.apiClient.ListIncidentAlerts(ctx, opts)
 	if err != nil {
 		return "", err
 	}

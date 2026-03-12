@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -32,8 +33,8 @@ func (t *ListCustomFieldsTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListCustomFieldsTool) Execute(args map[string]interface{}) (string, error) {
-	resp, err := t.apiClient.ListCustomFields()
+func (t *ListCustomFieldsTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
+	resp, err := t.apiClient.ListCustomFields(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -76,13 +77,13 @@ func (t *GetCustomFieldTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *GetCustomFieldTool) Execute(args map[string]interface{}) (string, error) {
+func (t *GetCustomFieldTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id, ok := args["id"].(string)
 	if !ok || id == "" {
 		return "", fmt.Errorf("id parameter is required")
 	}
 
-	field, err := t.apiClient.GetCustomField(id)
+	field, err := t.apiClient.GetCustomField(ctx, id)
 	if err != nil {
 		return "", err
 	}
@@ -140,11 +141,11 @@ func (t *SearchCustomFieldsTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *SearchCustomFieldsTool) Execute(args map[string]interface{}) (string, error) {
+func (t *SearchCustomFieldsTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	query := GetStringArg(args, "query")
 	fieldType := GetStringArg(args, "field_type")
 
-	fields, err := t.apiClient.SearchCustomFields(query, fieldType)
+	fields, err := t.apiClient.SearchCustomFields(ctx, query, fieldType)
 	if err != nil {
 		return "", err
 	}
@@ -222,7 +223,7 @@ func (t *CreateCustomFieldTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *CreateCustomFieldTool) Execute(args map[string]interface{}) (string, error) {
+func (t *CreateCustomFieldTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	name, ok := args["name"].(string)
 	if !ok || name == "" {
 		return "", fmt.Errorf("name is required")
@@ -278,7 +279,7 @@ func (t *CreateCustomFieldTool) Execute(args map[string]interface{}) (string, er
 		req.Options = options
 	}
 
-	field, err := t.apiClient.CreateCustomField(req)
+	field, err := t.apiClient.CreateCustomField(ctx, req)
 	if err != nil {
 		return "", err
 	}
@@ -350,7 +351,7 @@ func (t *UpdateCustomFieldTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *UpdateCustomFieldTool) Execute(args map[string]interface{}) (string, error) {
+func (t *UpdateCustomFieldTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id, ok := args["id"].(string)
 	if !ok || id == "" {
 		return "", fmt.Errorf("id is required")
@@ -392,7 +393,7 @@ func (t *UpdateCustomFieldTool) Execute(args map[string]interface{}) (string, er
 		req.Options = options
 	}
 
-	field, err := t.apiClient.UpdateCustomField(id, req)
+	field, err := t.apiClient.UpdateCustomField(ctx, id, req)
 	if err != nil {
 		return "", err
 	}
@@ -435,13 +436,13 @@ func (t *DeleteCustomFieldTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *DeleteCustomFieldTool) Execute(args map[string]interface{}) (string, error) {
+func (t *DeleteCustomFieldTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id, ok := args["id"].(string)
 	if !ok || id == "" {
 		return "", fmt.Errorf("id is required")
 	}
 
-	err := t.apiClient.DeleteCustomField(id)
+	err := t.apiClient.DeleteCustomField(ctx, id)
 	if err != nil {
 		return "", err
 	}
@@ -473,8 +474,8 @@ func (t *ListCustomFieldOptionsTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListCustomFieldOptionsTool) Execute(args map[string]interface{}) (string, error) {
-	options, err := t.apiClient.ListCustomFieldOptions()
+func (t *ListCustomFieldOptionsTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
+	options, err := t.apiClient.ListCustomFieldOptions(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -523,7 +524,7 @@ func (t *CreateCustomFieldOptionTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *CreateCustomFieldOptionTool) Execute(args map[string]interface{}) (string, error) {
+func (t *CreateCustomFieldOptionTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	customFieldID, ok := args["custom_field_id"].(string)
 	if !ok || customFieldID == "" {
 		return "", fmt.Errorf("custom_field_id is required")
@@ -543,7 +544,7 @@ func (t *CreateCustomFieldOptionTool) Execute(args map[string]interface{}) (stri
 		req.SortKey = int(sortKey)
 	}
 
-	option, err := t.apiClient.CreateCustomFieldOption(req)
+	option, err := t.apiClient.CreateCustomFieldOption(ctx, req)
 	if err != nil {
 		return "", err
 	}

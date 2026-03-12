@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -72,7 +73,7 @@ func (t *CreateIncidentEnhancedTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *CreateIncidentEnhancedTool) Execute(args map[string]interface{}) (string, error) {
+func (t *CreateIncidentEnhancedTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	name, ok := args["name"].(string)
 	if !ok {
 		return "", fmt.Errorf("name parameter is required")
@@ -124,7 +125,7 @@ func (t *CreateIncidentEnhancedTool) Execute(args map[string]interface{}) (strin
 
 	// Auto-fetch severity if not provided
 	if req.SeverityID == "" {
-		severities, err := t.apiClient.ListSeverities()
+		severities, err := t.apiClient.ListSeverities(ctx)
 		if err == nil && len(severities.Severities) > 0 {
 			// Select the first severity (usually the least severe)
 			req.SeverityID = severities.Severities[len(severities.Severities)-1].ID
@@ -136,7 +137,7 @@ func (t *CreateIncidentEnhancedTool) Execute(args map[string]interface{}) (strin
 
 	// Auto-fetch incident type if not provided
 	if req.IncidentTypeID == "" {
-		types, err := t.apiClient.ListIncidentTypes()
+		types, err := t.apiClient.ListIncidentTypes(ctx)
 		if err == nil && len(types.IncidentTypes) > 0 {
 			// Select the first incident type
 			req.IncidentTypeID = types.IncidentTypes[0].ID
@@ -148,13 +149,7 @@ func (t *CreateIncidentEnhancedTool) Execute(args map[string]interface{}) (strin
 
 	// Auto-fetch incident status if not provided using V1 API
 	if req.IncidentStatusID == "" {
-		// Use V1 API to get incident statuses
-		originalBaseURL := t.apiClient.BaseURL()
-		t.apiClient.SetBaseURL("https://api.incident.io/v1")
-
-		respBody, err := t.apiClient.DoRequest("GET", "/incident_statuses", nil, nil)
-		t.apiClient.SetBaseURL(originalBaseURL) // Restore original URL
-
+		respBody, err := t.apiClient.DoRequestV1(ctx, "GET", "/incident_statuses", nil, nil)
 		if err == nil {
 			var statusResponse struct {
 				IncidentStatuses []struct {
@@ -185,7 +180,7 @@ func (t *CreateIncidentEnhancedTool) Execute(args map[string]interface{}) (strin
 	}
 
 	// Create the incident
-	incident, err := t.apiClient.CreateIncident(req)
+	incident, err := t.apiClient.CreateIncident(ctx, req)
 	if err != nil {
 		return "", fmt.Errorf("failed to create incident: %w", err)
 	}

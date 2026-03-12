@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 )
@@ -16,10 +17,10 @@ type CreateAlertEventRequest struct {
 }
 
 // CreateAlertEvent creates a new alert event
-func (c *Client) CreateAlertEvent(req *CreateAlertEventRequest) (*AlertEvent, error) {
+func (c *Client) CreateAlertEvent(ctx context.Context, req *CreateAlertEventRequest) (*AlertEvent, error) {
 	endpoint := "/alert_events/http"
 
-	respBody, err := c.doRequest("POST", endpoint, nil, req)
+	respBody, err := c.doRequest(ctx, "POST", endpoint, nil, req)
 	if err != nil {
 		return nil, err
 	}

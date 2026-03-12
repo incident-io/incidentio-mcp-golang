@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"net/http"
 	"testing"
 )
@@ -74,7 +75,7 @@ func TestListCustomFields(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			result, err := client.ListCustomFields()
+			result, err := client.ListCustomFields(context.Background())
 
 			if tt.wantError {
 				assertError(t, err)
@@ -159,7 +160,7 @@ func TestGetCustomField(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			field, err := client.GetCustomField(tt.fieldID)
+			field, err := client.GetCustomField(context.Background(), tt.fieldID)
 
 			if tt.wantError {
 				assertError(t, err)
@@ -272,7 +273,7 @@ func TestCreateCustomField(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			field, err := client.CreateCustomField(tt.request)
+			field, err := client.CreateCustomField(context.Background(), tt.request)
 
 			if tt.wantError {
 				assertError(t, err)
@@ -358,7 +359,7 @@ func TestUpdateCustomField(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			field, err := client.UpdateCustomField(tt.fieldID, tt.request)
+			field, err := client.UpdateCustomField(context.Background(), tt.fieldID, tt.request)
 
 			if tt.wantError {
 				assertError(t, err)
@@ -407,7 +408,7 @@ func TestDeleteCustomField(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			err := client.DeleteCustomField(tt.fieldID)
+			err := client.DeleteCustomField(context.Background(), tt.fieldID)
 
 			if tt.wantError {
 				assertError(t, err)
@@ -470,7 +471,7 @@ func TestListCustomFieldOptions(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			options, err := client.ListCustomFieldOptions()
+			options, err := client.ListCustomFieldOptions(context.Background())
 
 			if tt.wantError {
 				assertError(t, err)
@@ -535,7 +536,7 @@ func TestCreateCustomFieldOption(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			option, err := client.CreateCustomFieldOption(tt.request)
+			option, err := client.CreateCustomFieldOption(context.Background(), tt.request)
 
 			if tt.wantError {
 				assertError(t, err)
@@ -628,7 +629,7 @@ func TestSearchCustomFields(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			fields, err := client.SearchCustomFields(tt.query, tt.fieldType)
+			fields, err := client.SearchCustomFields(context.Background(), tt.query, tt.fieldType)
 
 			if tt.wantError {
 				assertError(t, err)
