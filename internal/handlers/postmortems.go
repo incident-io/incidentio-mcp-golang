@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/incident-io/incidentio-mcp-golang/internal/client"
@@ -66,7 +67,7 @@ func (t *ListPostmortemsTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListPostmortemsTool) Execute(args map[string]interface{}) (string, error) {
+func (t *ListPostmortemsTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	opts := &client.ListPostmortemsOptions{
 		PageSize:   t.ValidateOptionalInt(args, "page_size", 25),
 		After:      t.ValidateOptionalString(args, "after"),
@@ -74,7 +75,7 @@ func (t *ListPostmortemsTool) Execute(args map[string]interface{}) (string, erro
 		SortBy:     t.ValidateOptionalString(args, "sort_by"),
 	}
 
-	resp, err := t.GetClient().ListPostmortems(opts)
+	resp, err := t.GetClient().ListPostmortems(ctx, opts)
 	if err != nil {
 		return "", err
 	}
@@ -134,13 +135,13 @@ func (t *GetPostmortemTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *GetPostmortemTool) Execute(args map[string]interface{}) (string, error) {
+func (t *GetPostmortemTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id, err := t.ValidateRequiredString(args, "id")
 	if err != nil {
 		return "", err
 	}
 
-	postmortem, err := t.GetClient().GetPostmortem(id)
+	postmortem, err := t.GetClient().GetPostmortem(ctx, id)
 	if err != nil {
 		return "", err
 	}
@@ -190,13 +191,13 @@ func (t *GetPostmortemContentTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *GetPostmortemContentTool) Execute(args map[string]interface{}) (string, error) {
+func (t *GetPostmortemContentTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id, err := t.ValidateRequiredString(args, "id")
 	if err != nil {
 		return "", err
 	}
 
-	content, err := t.GetClient().GetPostmortemContent(id)
+	content, err := t.GetClient().GetPostmortemContent(ctx, id)
 	if err != nil {
 		return "", err
 	}

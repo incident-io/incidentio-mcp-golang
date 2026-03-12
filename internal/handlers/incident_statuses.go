@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -31,13 +32,8 @@ func (t *ListIncidentStatusesTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListIncidentStatusesTool) Execute(args map[string]interface{}) (string, error) {
-	// Use V1 API to get incident statuses
-	originalBaseURL := t.apiClient.BaseURL()
-	t.apiClient.SetBaseURL("https://api.incident.io/v1")
-	defer t.apiClient.SetBaseURL(originalBaseURL)
-
-	respBody, err := t.apiClient.DoRequest("GET", "/incident_statuses", nil, nil)
+func (t *ListIncidentStatusesTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
+	respBody, err := t.apiClient.DoRequestV1(ctx, "GET", "/incident_statuses", nil, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch incident statuses: %w", err)
 	}

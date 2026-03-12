@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -73,7 +74,7 @@ type ListUsersResponse struct {
 }
 
 // ListIncidentRoles retrieves a list of incident roles
-func (c *Client) ListIncidentRoles(opts *ListIncidentRolesOptions) (*ListIncidentRolesResponse, error) {
+func (c *Client) ListIncidentRoles(ctx context.Context, opts *ListIncidentRolesOptions) (*ListIncidentRolesResponse, error) {
 	// Set default page size
 	pageSize := 25
 	if opts != nil && opts.PageSize > 0 {
@@ -87,7 +88,7 @@ func (c *Client) ListIncidentRoles(opts *ListIncidentRolesOptions) (*ListInciden
 		params.Set("after", opts.After)
 	}
 
-	respBody, err := c.doRequest("GET", "/incident_roles", params, nil)
+	respBody, err := c.doRequest(ctx, "GET", "/incident_roles", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +103,7 @@ func (c *Client) ListIncidentRoles(opts *ListIncidentRolesOptions) (*ListInciden
 
 // ListUsers retrieves a single page of users
 // Pagination is controlled by the caller using PageSize and After parameters
-func (c *Client) ListUsers(opts *ListUsersOptions) (*ListUsersResponse, error) {
+func (c *Client) ListUsers(ctx context.Context, opts *ListUsersOptions) (*ListUsersResponse, error) {
 	pageSize := 10 // Conservative default to avoid exceeding MCP client limits
 	after := ""
 
@@ -126,7 +127,7 @@ func (c *Client) ListUsers(opts *ListUsersOptions) (*ListUsersResponse, error) {
 		params.Set("email", opts.Email)
 	}
 
-	respBody, err := c.doRequest("GET", "/users", params, nil)
+	respBody, err := c.doRequest(ctx, "GET", "/users", params, nil)
 	if err != nil {
 		return nil, err
 	}

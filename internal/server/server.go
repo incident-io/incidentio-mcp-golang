@@ -34,7 +34,7 @@ type Handler interface {
 	Name() string
 	Description() string
 	InputSchema() map[string]any
-	Execute(args map[string]any) (string, error)
+	Execute(ctx context.Context, args map[string]any) (string, error)
 }
 
 type Config struct {
@@ -111,7 +111,7 @@ func (s *Server) startStdioWithIO(ctx context.Context, in io.Reader, out io.Writ
 				continue
 			}
 
-			response, err := s.handleMessage(&decoded.msg)
+			response, err := s.handleMessage(ctx, &decoded.msg)
 			if err != nil {
 				response = s.createErrorResponse(decoded.msg.ID, err)
 			}
@@ -187,7 +187,7 @@ func (s *Server) handleHTTPMCP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := s.handleMessage(&msg)
+	response, err := s.handleMessage(r.Context(), &msg)
 	if err != nil {
 		response = s.createErrorResponse(msg.ID, err)
 	}
@@ -220,7 +220,7 @@ func (s *Server) registerTools() {
 	s.mu.Unlock()
 }
 
-func (s *Server) handleMessage(msg *mcp.Message) (*mcp.Message, error) {
+func (s *Server) handleMessage(ctx context.Context, msg *mcp.Message) (*mcp.Message, error) {
 	// Handle notifications (no ID means it's a notification)
 	if msg.ID == nil {
 		return nil, nil
@@ -232,7 +232,7 @@ func (s *Server) handleMessage(msg *mcp.Message) (*mcp.Message, error) {
 	case "tools/list":
 		return s.handleToolsList(msg)
 	case "tools/call":
-		return s.handleToolCall(msg)
+		return s.handleToolCall(ctx, msg)
 	default:
 		return &mcp.Message{
 			Jsonrpc: "2.0",
@@ -286,7 +286,7 @@ func (s *Server) handleToolsList(msg *mcp.Message) (*mcp.Message, error) {
 	return response, nil
 }
 
-func (s *Server) handleToolCall(msg *mcp.Message) (*mcp.Message, error) {
+func (s *Server) handleToolCall(ctx context.Context, msg *mcp.Message) (*mcp.Message, error) {
 	params, ok := msg.Params.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("invalid params")
@@ -307,7 +307,7 @@ func (s *Server) handleToolCall(msg *mcp.Message) (*mcp.Message, error) {
 
 	args, _ := params["arguments"].(map[string]interface{})
 
-	result, err := tool.Execute(args)
+	result, err := tool.Execute(ctx, args)
 	if err != nil {
 		return nil, err
 	}

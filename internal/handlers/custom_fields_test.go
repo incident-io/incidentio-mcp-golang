@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"testing"
 )
 
@@ -32,7 +33,7 @@ func TestGetCustomFieldTool_Execute(t *testing.T) {
 	t.Run("missing required id", func(t *testing.T) {
 		args := map[string]interface{}{}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for missing id parameter")
 		}
@@ -47,7 +48,7 @@ func TestGetCustomFieldTool_Execute(t *testing.T) {
 			"id": 123, // Not a string
 		}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for wrong type id parameter")
 		}
@@ -59,7 +60,7 @@ func TestGetCustomFieldTool_Execute(t *testing.T) {
 			"id": "",
 		}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for empty id parameter")
 		}
@@ -142,7 +143,7 @@ func TestCreateCustomFieldTool_Execute(t *testing.T) {
 			"field_type":  "text",
 		}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for missing name parameter")
 		}
@@ -158,7 +159,7 @@ func TestCreateCustomFieldTool_Execute(t *testing.T) {
 			"field_type": "text",
 		}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for missing description parameter")
 		}
@@ -174,7 +175,7 @@ func TestCreateCustomFieldTool_Execute(t *testing.T) {
 			"description": "Test Description",
 		}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for missing field_type parameter")
 		}
@@ -191,7 +192,7 @@ func TestCreateCustomFieldTool_Execute(t *testing.T) {
 			"field_type":  "text",
 		}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for wrong type name parameter")
 		}
@@ -244,7 +245,7 @@ func TestUpdateCustomFieldTool_Execute(t *testing.T) {
 			"name": "Updated Name",
 		}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for missing id parameter")
 		}
@@ -260,7 +261,7 @@ func TestUpdateCustomFieldTool_Execute(t *testing.T) {
 			"name": "Updated Name",
 		}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for wrong type id parameter")
 		}
@@ -273,7 +274,7 @@ func TestUpdateCustomFieldTool_Execute(t *testing.T) {
 			"name": "Updated Name",
 		}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for empty id parameter")
 		}
@@ -318,7 +319,7 @@ func TestDeleteCustomFieldTool_Execute(t *testing.T) {
 	t.Run("missing required id", func(t *testing.T) {
 		args := map[string]interface{}{}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for missing id parameter")
 		}
@@ -333,7 +334,7 @@ func TestDeleteCustomFieldTool_Execute(t *testing.T) {
 			"id": 123, // Not a string
 		}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for wrong type id parameter")
 		}
@@ -345,7 +346,7 @@ func TestDeleteCustomFieldTool_Execute(t *testing.T) {
 			"id": "",
 		}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for empty id parameter")
 		}
@@ -413,7 +414,7 @@ func TestCreateCustomFieldOptionTool_Execute(t *testing.T) {
 			"value": "Option Value",
 		}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for missing custom_field_id parameter")
 		}
@@ -428,7 +429,7 @@ func TestCreateCustomFieldOptionTool_Execute(t *testing.T) {
 			"custom_field_id": "cf_123",
 		}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for missing value parameter")
 		}
@@ -444,7 +445,7 @@ func TestCreateCustomFieldOptionTool_Execute(t *testing.T) {
 			"value":           "Option Value",
 		}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for wrong type custom_field_id parameter")
 		}
@@ -457,7 +458,7 @@ func TestCreateCustomFieldOptionTool_Execute(t *testing.T) {
 			"value":           "Option Value",
 		}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for empty custom_field_id parameter")
 		}

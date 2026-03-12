@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -62,7 +63,7 @@ func (t *CreateAlertEventTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *CreateAlertEventTool) Execute(args map[string]interface{}) (string, error) {
+func (t *CreateAlertEventTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	req := &client.CreateAlertEventRequest{}
 
 	alertSourceID, ok := args["alert_source_id"].(string)
@@ -95,7 +96,7 @@ func (t *CreateAlertEventTool) Execute(args map[string]interface{}) (string, err
 		req.Metadata = metadata
 	}
 
-	alertEvent, err := t.apiClient.CreateAlertEvent(req)
+	alertEvent, err := t.apiClient.CreateAlertEvent(ctx, req)
 	if err != nil {
 		return "", fmt.Errorf("failed to create alert event: %w", err)
 	}

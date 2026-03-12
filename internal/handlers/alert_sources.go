@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -43,7 +44,7 @@ func (t *ListAlertSourcesTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListAlertSourcesTool) Execute(args map[string]interface{}) (string, error) {
+func (t *ListAlertSourcesTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	params := &client.ListAlertSourcesParams{}
 
 	if pageSize, ok := args["page_size"].(float64); ok {
@@ -53,7 +54,7 @@ func (t *ListAlertSourcesTool) Execute(args map[string]interface{}) (string, err
 		params.After = after
 	}
 
-	result, err := t.apiClient.ListAlertSources(params)
+	result, err := t.apiClient.ListAlertSources(ctx, params)
 	if err != nil {
 		return "", fmt.Errorf("failed to list alert sources: %w", err)
 	}

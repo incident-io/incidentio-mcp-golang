@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -32,8 +33,8 @@ func (t *ListSeveritiesTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListSeveritiesTool) Execute(args map[string]interface{}) (string, error) {
-	result, err := t.apiClient.ListSeverities()
+func (t *ListSeveritiesTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
+	result, err := t.apiClient.ListSeverities(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to list severities: %w", err)
 	}
@@ -91,13 +92,13 @@ func (t *GetSeverityTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *GetSeverityTool) Execute(args map[string]interface{}) (string, error) {
+func (t *GetSeverityTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id, ok := args["id"].(string)
 	if !ok || id == "" {
 		return "", fmt.Errorf("id parameter is required")
 	}
 
-	severity, err := t.apiClient.GetSeverity(id)
+	severity, err := t.apiClient.GetSeverity(ctx, id)
 	if err != nil {
 		return "", fmt.Errorf("failed to get severity: %w", err)
 	}

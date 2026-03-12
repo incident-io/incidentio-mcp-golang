@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -8,7 +9,7 @@ import (
 )
 
 // ListIncidentUpdates retrieves incident updates with optional filtering
-func (c *Client) ListIncidentUpdates(opts *ListIncidentUpdatesOptions) (*ListIncidentUpdatesResponse, error) {
+func (c *Client) ListIncidentUpdates(ctx context.Context, opts *ListIncidentUpdatesOptions) (*ListIncidentUpdatesResponse, error) {
 	// Set default page size
 	pageSize := 25
 	if opts != nil && opts.PageSize > 0 {
@@ -27,7 +28,7 @@ func (c *Client) ListIncidentUpdates(opts *ListIncidentUpdatesOptions) (*ListInc
 		}
 	}
 
-	respBody, err := c.doRequest("GET", "/incident_updates", params, nil)
+	respBody, err := c.doRequest(ctx, "GET", "/incident_updates", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -41,8 +42,8 @@ func (c *Client) ListIncidentUpdates(opts *ListIncidentUpdatesOptions) (*ListInc
 }
 
 // GetIncidentUpdate retrieves a specific incident update by ID
-func (c *Client) GetIncidentUpdate(id string) (*IncidentUpdate, error) {
-	respBody, err := c.doRequest("GET", fmt.Sprintf("/incident_updates/%s", id), nil, nil)
+func (c *Client) GetIncidentUpdate(ctx context.Context, id string) (*IncidentUpdate, error) {
+	respBody, err := c.doRequest(ctx, "GET", fmt.Sprintf("/incident_updates/%s", id), nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +59,7 @@ func (c *Client) GetIncidentUpdate(id string) (*IncidentUpdate, error) {
 }
 
 // CreateIncidentUpdate creates a new incident update
-func (c *Client) CreateIncidentUpdate(req *CreateIncidentUpdateRequest) (*IncidentUpdate, error) {
+func (c *Client) CreateIncidentUpdate(ctx context.Context, req *CreateIncidentUpdateRequest) (*IncidentUpdate, error) {
 	// Validate required fields
 	if req.IncidentID == "" {
 		return nil, fmt.Errorf("incident_id is required")
@@ -67,7 +68,7 @@ func (c *Client) CreateIncidentUpdate(req *CreateIncidentUpdateRequest) (*Incide
 		return nil, fmt.Errorf("message is required")
 	}
 
-	respBody, err := c.doRequest("POST", "/incident_updates", nil, req)
+	respBody, err := c.doRequest(ctx, "POST", "/incident_updates", nil, req)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +84,7 @@ func (c *Client) CreateIncidentUpdate(req *CreateIncidentUpdateRequest) (*Incide
 }
 
 // DeleteIncidentUpdate deletes an incident update
-func (c *Client) DeleteIncidentUpdate(id string) error {
-	_, err := c.doRequest("DELETE", fmt.Sprintf("/incident_updates/%s", id), nil, nil)
+func (c *Client) DeleteIncidentUpdate(ctx context.Context, id string) error {
+	_, err := c.doRequest(ctx, "DELETE", fmt.Sprintf("/incident_updates/%s", id), nil, nil)
 	return err
 }

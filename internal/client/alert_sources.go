@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -33,7 +34,7 @@ type ListAlertSourcesResponse struct {
 }
 
 // ListAlertSources returns all alert sources
-func (c *Client) ListAlertSources(params *ListAlertSourcesParams) (*ListAlertSourcesResponse, error) {
+func (c *Client) ListAlertSources(ctx context.Context, params *ListAlertSourcesParams) (*ListAlertSourcesResponse, error) {
 	endpoint := "/alert_sources"
 
 	// Set default page size
@@ -52,7 +53,7 @@ func (c *Client) ListAlertSources(params *ListAlertSourcesParams) (*ListAlertSou
 		endpoint = endpoint + "?" + v.Encode()
 	}
 
-	respBody, err := c.doRequest("GET", endpoint, nil, nil)
+	respBody, err := c.doRequest(ctx, "GET", endpoint, nil, nil)
 	if err != nil {
 		return nil, err
 	}

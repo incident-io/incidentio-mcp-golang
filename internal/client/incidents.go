@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -36,7 +37,7 @@ type ListIncidentsResponse struct {
 
 // ListIncidents retrieves a single page of incidents
 // Pagination is controlled by the caller using PageSize and After parameters
-func (c *Client) ListIncidents(opts *ListIncidentsOptions) (*ListIncidentsResponse, error) {
+func (c *Client) ListIncidents(ctx context.Context, opts *ListIncidentsOptions) (*ListIncidentsResponse, error) {
 	pageSize := 10 // Conservative default to avoid exceeding MCP client limits
 	after := ""
 
@@ -99,7 +100,7 @@ func (c *Client) ListIncidents(opts *ListIncidentsOptions) (*ListIncidentsRespon
 		}
 	}
 
-	respBody, err := c.doRequest("GET", "/incidents", params, nil)
+	respBody, err := c.doRequest(ctx, "GET", "/incidents", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -113,8 +114,8 @@ func (c *Client) ListIncidents(opts *ListIncidentsOptions) (*ListIncidentsRespon
 }
 
 // GetIncident retrieves a specific incident by ID
-func (c *Client) GetIncident(id string) (*Incident, error) {
-	respBody, err := c.doRequest("GET", fmt.Sprintf("/incidents/%s", id), nil, nil)
+func (c *Client) GetIncident(ctx context.Context, id string) (*Incident, error) {
+	respBody, err := c.doRequest(ctx, "GET", fmt.Sprintf("/incidents/%s", id), nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -130,8 +131,8 @@ func (c *Client) GetIncident(id string) (*Incident, error) {
 }
 
 // CreateIncident creates a new incident
-func (c *Client) CreateIncident(req *CreateIncidentRequest) (*Incident, error) {
-	respBody, err := c.doRequest("POST", "/incidents", nil, req)
+func (c *Client) CreateIncident(ctx context.Context, req *CreateIncidentRequest) (*Incident, error) {
+	respBody, err := c.doRequest(ctx, "POST", "/incidents", nil, req)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +148,7 @@ func (c *Client) CreateIncident(req *CreateIncidentRequest) (*Incident, error) {
 }
 
 // UpdateIncident updates an existing incident using V2 actions/edit API
-func (c *Client) UpdateIncident(id string, req *UpdateIncidentRequest) (*Incident, error) {
+func (c *Client) UpdateIncident(ctx context.Context, id string, req *UpdateIncidentRequest) (*Incident, error) {
 	// Use the correct V2 actions/edit endpoint
 	editRequest := map[string]interface{}{
 		"notify_incident_channel": true,
@@ -191,7 +192,7 @@ func (c *Client) UpdateIncident(id string, req *UpdateIncidentRequest) (*Inciden
 		return nil, fmt.Errorf("no fields to update")
 	}
 
-	respBody, err := c.doRequest("POST", fmt.Sprintf("/incidents/%s/actions/edit", id), nil, editRequest)
+	respBody, err := c.doRequest(ctx, "POST", fmt.Sprintf("/incidents/%s/actions/edit", id), nil, editRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -213,8 +214,8 @@ type AssignIncidentRoleRequest struct {
 }
 
 // AssignIncidentRole assigns a specific role to a user for an incident
-func (c *Client) AssignIncidentRole(incidentID string, req *AssignIncidentRoleRequest) (*Incident, error) {
-	respBody, err := c.doRequest("PATCH", fmt.Sprintf("/incidents/%s", incidentID), nil, map[string]interface{}{
+func (c *Client) AssignIncidentRole(ctx context.Context, incidentID string, req *AssignIncidentRoleRequest) (*Incident, error) {
+	respBody, err := c.doRequest(ctx, "PATCH", fmt.Sprintf("/incidents/%s", incidentID), nil, map[string]interface{}{
 		"incident_role_assignments": []map[string]interface{}{
 			{
 				"incident_role_id": req.IncidentRoleID,

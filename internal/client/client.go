@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -14,6 +15,8 @@ import (
 
 const (
 	defaultBaseURL = "https://api.incident.io/v2"
+	BaseURLV1      = "https://api.incident.io/v1"
+	BaseURLV3      = "https://api.incident.io/v3"
 	userAgent      = "incidentio-mcp-server/0.1.0"
 )
 
@@ -21,6 +24,7 @@ type Client struct {
 	httpClient *http.Client
 	baseURL    string
 	apiKey     string
+	debug      bool
 }
 
 func NewClient() (*Client, error) {
@@ -34,44 +38,52 @@ func NewClient() (*Client, error) {
 		baseURL = defaultBaseURL
 	}
 
+	// Clone the default transport to preserve HTTP/2 support, connection pooling,
+	// TLS handshake timeout, and other production-ready defaults.
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+
 	return &Client{
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					MinVersion: tls.VersionTLS12,
-				},
-			},
+			Timeout:   30 * time.Second,
+			Transport: transport,
 		},
 		baseURL: baseURL,
 		apiKey:  apiKey,
+		debug:   os.Getenv("MCP_DEBUG") != "",
 	}, nil
 }
 
-// BaseURL returns the current base URL
-func (c *Client) BaseURL() string {
-	return c.baseURL
+// DoRequest exposes the internal doRequest method using the default base URL
+func (c *Client) DoRequest(ctx context.Context, method, path string, params url.Values, body interface{}) ([]byte, error) {
+	return c.doRequestWithBase(ctx, c.baseURL, method, path, params, body)
 }
 
-// SetBaseURL sets the base URL
-func (c *Client) SetBaseURL(baseURL string) {
-	c.baseURL = baseURL
+// DoRequestV1 makes a request against the V1 API
+func (c *Client) DoRequestV1(ctx context.Context, method, path string, params url.Values, body interface{}) ([]byte, error) {
+	return c.doRequestWithBase(ctx, BaseURLV1, method, path, params, body)
 }
 
-// DoRequest exposes the internal doRequest method
-func (c *Client) DoRequest(method, path string, params url.Values, body interface{}) ([]byte, error) {
-	return c.doRequest(method, path, params, body)
+// DoRequestV3 makes a request against the V3 API
+func (c *Client) DoRequestV3(ctx context.Context, method, path string, params url.Values, body interface{}) ([]byte, error) {
+	return c.doRequestWithBase(ctx, BaseURLV3, method, path, params, body)
 }
 
-func (c *Client) doRequest(method, path string, params url.Values, body interface{}) ([]byte, error) {
-	endpoint := c.baseURL + path
+func (c *Client) doRequest(ctx context.Context, method, path string, params url.Values, body interface{}) ([]byte, error) {
+	return c.doRequestWithBase(ctx, c.baseURL, method, path, params, body)
+}
+
+func (c *Client) doRequestWithBase(ctx context.Context, baseURL, method, path string, params url.Values, body interface{}) ([]byte, error) {
+	endpoint := baseURL + path
 
 	if len(params) > 0 {
 		endpoint += "?" + params.Encode()
 	}
 
 	// Debug logging to stderr (won't interfere with MCP protocol)
-	if os.Getenv("MCP_DEBUG") != "" {
+	if c.debug {
 		fmt.Fprintf(os.Stderr, "[DEBUG] %s %s\n", method, endpoint)
 	}
 
@@ -84,7 +96,7 @@ func (c *Client) doRequest(method, path string, params url.Values, body interfac
 		reqBody = bytes.NewReader(jsonBody)
 	}
 
-	req, err := http.NewRequest(method, endpoint, reqBody)
+	req, err := http.NewRequestWithContext(ctx, method, endpoint, reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

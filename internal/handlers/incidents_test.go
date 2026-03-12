@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"testing"
 )
 
@@ -13,7 +14,7 @@ func TestCreateIncidentTool_Execute(t *testing.T) {
 			"summary": "Test Summary",
 		}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for missing name parameter")
 		}
@@ -28,7 +29,7 @@ func TestCreateIncidentTool_Execute(t *testing.T) {
 			"name": 123, // Not a string
 		}
 
-		_, err := tool.Execute(args)
+		_, err := tool.Execute(context.Background(), args)
 		if err == nil {
 			t.Error("Expected error for wrong type name parameter")
 		}

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -40,7 +41,7 @@ type ListIncidentAlertsResponse struct {
 
 // ListAlerts retrieves a single page of alerts
 // Pagination is controlled by the caller using PageSize and After parameters
-func (c *Client) ListAlerts(opts *ListAlertsOptions) (*ListAlertsResponse, error) {
+func (c *Client) ListAlerts(ctx context.Context, opts *ListAlertsOptions) (*ListAlertsResponse, error) {
 	pageSize := 25 // API default page size
 	after := ""
 
@@ -80,7 +81,7 @@ func (c *Client) ListAlerts(opts *ListAlertsOptions) (*ListAlertsResponse, error
 		}
 	}
 
-	respBody, err := c.doRequest("GET", "/alerts", params, nil)
+	respBody, err := c.doRequest(ctx, "GET", "/alerts", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -94,8 +95,8 @@ func (c *Client) ListAlerts(opts *ListAlertsOptions) (*ListAlertsResponse, error
 }
 
 // GetAlert retrieves a specific alert by ID
-func (c *Client) GetAlert(id string) (*Alert, error) {
-	respBody, err := c.doRequest("GET", fmt.Sprintf("/alerts/%s", id), nil, nil)
+func (c *Client) GetAlert(ctx context.Context, id string) (*Alert, error) {
+	respBody, err := c.doRequest(ctx, "GET", fmt.Sprintf("/alerts/%s", id), nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +113,7 @@ func (c *Client) GetAlert(id string) (*Alert, error) {
 
 // ListIncidentAlerts retrieves a single page of incident alerts
 // Pagination is controlled by the caller using PageSize and After parameters
-func (c *Client) ListIncidentAlerts(opts *ListIncidentAlertsOptions) (*ListIncidentAlertsResponse, error) {
+func (c *Client) ListIncidentAlerts(ctx context.Context, opts *ListIncidentAlertsOptions) (*ListIncidentAlertsResponse, error) {
 	pageSize := 25 // Default page size as per API documentation
 	after := ""
 
@@ -141,7 +142,7 @@ func (c *Client) ListIncidentAlerts(opts *ListIncidentAlertsOptions) (*ListIncid
 		}
 	}
 
-	respBody, err := c.doRequest("GET", "/incident_alerts", params, nil)
+	respBody, err := c.doRequest(ctx, "GET", "/incident_alerts", params, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -130,7 +131,7 @@ type IncidentSummary struct {
 	Permalink  string `json:"permalink"`
 }
 
-func (t *ListIncidentsTool) Execute(args map[string]interface{}) (string, error) {
+func (t *ListIncidentsTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	opts := &client.ListIncidentsOptions{
 		PageSize: 25, // Default to 25 for reasonable response sizes
 	}
@@ -213,7 +214,7 @@ func (t *ListIncidentsTool) Execute(args map[string]interface{}) (string, error)
 		}
 	}
 
-	resp, err := t.apiClient.ListIncidents(opts)
+	resp, err := t.apiClient.ListIncidents(ctx, opts)
 	if err != nil {
 		return "", err
 	}
@@ -337,7 +338,7 @@ func (t *GetIncidentTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *GetIncidentTool) Execute(args map[string]interface{}) (string, error) {
+func (t *GetIncidentTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id, ok := args["incident_id"].(string)
 	if !ok || id == "" {
 		argDetails := make(map[string]interface{})
@@ -347,7 +348,7 @@ func (t *GetIncidentTool) Execute(args map[string]interface{}) (string, error) {
 		return "", fmt.Errorf("incident_id parameter is required and must be a non-empty string. Received parameters: %+v", argDetails)
 	}
 
-	incident, err := t.apiClient.GetIncident(id)
+	incident, err := t.apiClient.GetIncident(ctx, id)
 	if err != nil {
 		return "", err
 	}
@@ -428,7 +429,7 @@ func (t *CreateIncidentTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *CreateIncidentTool) Execute(args map[string]interface{}) (string, error) {
+func (t *CreateIncidentTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	name, ok := args["name"].(string)
 	if !ok {
 		return "", fmt.Errorf("name parameter is required")
@@ -481,7 +482,7 @@ func (t *CreateIncidentTool) Execute(args map[string]interface{}) (string, error
 		suggestions = append(suggestions, "incident_status_id is not set. Use list_incident_statuses to see available options.")
 	}
 
-	incident, err := t.apiClient.CreateIncident(req)
+	incident, err := t.apiClient.CreateIncident(ctx, req)
 	if err != nil {
 		// If the error is related to missing required fields, provide more helpful error message
 		errMsg := err.Error()
@@ -551,7 +552,7 @@ func (t *UpdateIncidentTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *UpdateIncidentTool) Execute(args map[string]interface{}) (string, error) {
+func (t *UpdateIncidentTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 
 	id, ok := args["incident_id"].(string)
 	if !ok || id == "" {
@@ -586,7 +587,7 @@ func (t *UpdateIncidentTool) Execute(args map[string]interface{}) (string, error
 		return "", fmt.Errorf("at least one field to update must be provided")
 	}
 
-	incident, err := t.apiClient.UpdateIncident(id, req)
+	incident, err := t.apiClient.UpdateIncident(ctx, id, req)
 	if err != nil {
 		return "", err
 	}

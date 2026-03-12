@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -18,7 +19,7 @@ type ListFollowUpsResponse struct {
 }
 
 // ListFollowUps retrieves all follow-ups for an organization
-func (c *Client) ListFollowUps(opts *ListFollowUpsOptions) (*ListFollowUpsResponse, error) {
+func (c *Client) ListFollowUps(ctx context.Context, opts *ListFollowUpsOptions) (*ListFollowUpsResponse, error) {
 	params := url.Values{}
 
 	if opts != nil {
@@ -30,7 +31,7 @@ func (c *Client) ListFollowUps(opts *ListFollowUpsOptions) (*ListFollowUpsRespon
 		}
 	}
 
-	respBody, err := c.doRequest("GET", "/follow_ups", params, nil)
+	respBody, err := c.doRequest(ctx, "GET", "/follow_ups", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -44,8 +45,8 @@ func (c *Client) ListFollowUps(opts *ListFollowUpsOptions) (*ListFollowUpsRespon
 }
 
 // GetFollowUp retrieves a specific follow-up by ID
-func (c *Client) GetFollowUp(id string) (*FollowUp, error) {
-	respBody, err := c.doRequest("GET", fmt.Sprintf("/follow_ups/%s", id), nil, nil)
+func (c *Client) GetFollowUp(ctx context.Context, id string) (*FollowUp, error) {
+	respBody, err := c.doRequest(ctx, "GET", fmt.Sprintf("/follow_ups/%s", id), nil, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"net/http"
 	"testing"
 )
@@ -154,7 +155,7 @@ func TestCreateAlertEvent(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			event, err := client.CreateAlertEvent(tt.request)
+			event, err := client.CreateAlertEvent(context.Background(), tt.request)
 
 			if tt.wantError {
 				assertError(t, err)

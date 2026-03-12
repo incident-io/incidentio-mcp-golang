@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -34,8 +35,8 @@ func (t *ListCatalogTypesTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListCatalogTypesTool) Execute(args map[string]interface{}) (string, error) {
-	result, err := t.apiClient.ListCatalogTypes()
+func (t *ListCatalogTypesTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
+	result, err := t.apiClient.ListCatalogTypes(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to list catalog types: %w", err)
 	}
@@ -130,7 +131,7 @@ func (t *ListCatalogEntriesTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListCatalogEntriesTool) Execute(args map[string]interface{}) (string, error) {
+func (t *ListCatalogEntriesTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	catalogTypeID, ok := args["catalog_type_id"].(string)
 	if !ok || catalogTypeID == "" {
 		return "", fmt.Errorf("catalog_type_id parameter is required")
@@ -158,7 +159,7 @@ func (t *ListCatalogEntriesTool) Execute(args map[string]interface{}) (string, e
 		opts.Identifier = identifier
 	}
 
-	result, err := t.apiClient.ListCatalogEntries(opts)
+	result, err := t.apiClient.ListCatalogEntries(ctx, opts)
 	if err != nil {
 		return "", fmt.Errorf("failed to list catalog entries: %w", err)
 	}
@@ -282,7 +283,7 @@ func (t *UpdateCatalogEntryTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *UpdateCatalogEntryTool) Execute(args map[string]interface{}) (string, error) {
+func (t *UpdateCatalogEntryTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id, ok := args["id"].(string)
 	if !ok || id == "" {
 		return "", fmt.Errorf("id parameter is required")
@@ -363,7 +364,7 @@ func (t *UpdateCatalogEntryTool) Execute(args map[string]interface{}) (string, e
 		}
 	}
 
-	result, err := t.apiClient.UpdateCatalogEntry(id, req)
+	result, err := t.apiClient.UpdateCatalogEntry(ctx, id, req)
 	if err != nil {
 		return "", fmt.Errorf("failed to update catalog entry: %w", err)
 	}

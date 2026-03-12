@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"net/http"
 	"testing"
 )
@@ -75,7 +76,7 @@ func TestListAlertRoutes(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			result, err := client.ListAlertRoutes(tt.params)
+			result, err := client.ListAlertRoutes(context.Background(), tt.params)
 
 			if tt.wantError {
 				assertError(t, err)
@@ -174,7 +175,7 @@ func TestGetAlertRoute(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			route, err := client.GetAlertRoute(tt.routeID)
+			route, err := client.GetAlertRoute(context.Background(), tt.routeID)
 
 			if tt.wantError {
 				assertError(t, err)
@@ -316,7 +317,7 @@ func TestCreateAlertRoute(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			route, err := client.CreateAlertRoute(tt.request)
+			route, err := client.CreateAlertRoute(context.Background(), tt.request)
 
 			if tt.wantError {
 				assertError(t, err)
@@ -427,7 +428,7 @@ func TestUpdateAlertRoute(t *testing.T) {
 			}
 
 			client := NewTestClient(mockClient)
-			route, err := client.UpdateAlertRoute(tt.routeID, tt.request)
+			route, err := client.UpdateAlertRoute(context.Background(), tt.routeID, tt.request)
 
 			if tt.wantError {
 				assertError(t, err)

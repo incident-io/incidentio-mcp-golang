@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -43,7 +44,7 @@ func (t *ListAlertRoutesTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListAlertRoutesTool) Execute(args map[string]interface{}) (string, error) {
+func (t *ListAlertRoutesTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	params := &client.ListAlertRoutesParams{}
 
 	if pageSize, ok := args["page_size"].(float64); ok {
@@ -53,7 +54,7 @@ func (t *ListAlertRoutesTool) Execute(args map[string]interface{}) (string, erro
 		params.After = after
 	}
 
-	result, err := t.apiClient.ListAlertRoutes(params)
+	result, err := t.apiClient.ListAlertRoutes(ctx, params)
 	if err != nil {
 		return "", fmt.Errorf("failed to list alert routes: %w", err)
 	}
@@ -98,13 +99,13 @@ func (t *GetAlertRouteTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *GetAlertRouteTool) Execute(args map[string]interface{}) (string, error) {
+func (t *GetAlertRouteTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id, ok := args["id"].(string)
 	if !ok || id == "" {
 		return "", fmt.Errorf("alert route ID is required")
 	}
 
-	alertRoute, err := t.apiClient.GetAlertRoute(id)
+	alertRoute, err := t.apiClient.GetAlertRoute(ctx, id)
 	if err != nil {
 		return "", fmt.Errorf("failed to get alert route: %w", err)
 	}
@@ -205,7 +206,7 @@ func (t *CreateAlertRouteTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *CreateAlertRouteTool) Execute(args map[string]interface{}) (string, error) {
+func (t *CreateAlertRouteTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	req := &client.CreateAlertRouteRequest{}
 
 	name, ok := args["name"].(string)
@@ -261,7 +262,7 @@ func (t *CreateAlertRouteTool) Execute(args map[string]interface{}) (string, err
 		req.Template = template
 	}
 
-	alertRoute, err := t.apiClient.CreateAlertRoute(req)
+	alertRoute, err := t.apiClient.CreateAlertRoute(ctx, req)
 	if err != nil {
 		return "", fmt.Errorf("failed to create alert route: %w", err)
 	}
@@ -365,7 +366,7 @@ func (t *UpdateAlertRouteTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *UpdateAlertRouteTool) Execute(args map[string]interface{}) (string, error) {
+func (t *UpdateAlertRouteTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	id, ok := args["id"].(string)
 	if !ok || id == "" {
 		return "", fmt.Errorf("alert route ID is required")
@@ -425,7 +426,7 @@ func (t *UpdateAlertRouteTool) Execute(args map[string]interface{}) (string, err
 		req.Template = template
 	}
 
-	alertRoute, err := t.apiClient.UpdateAlertRoute(id, req)
+	alertRoute, err := t.apiClient.UpdateAlertRoute(ctx, id, req)
 	if err != nil {
 		return "", fmt.Errorf("failed to update alert route: %w", err)
 	}

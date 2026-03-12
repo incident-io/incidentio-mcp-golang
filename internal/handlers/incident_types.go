@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -32,8 +33,8 @@ func (t *ListIncidentTypesTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListIncidentTypesTool) Execute(args map[string]interface{}) (string, error) {
-	result, err := t.apiClient.ListIncidentTypes()
+func (t *ListIncidentTypesTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
+	result, err := t.apiClient.ListIncidentTypes(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to list incident types: %w", err)
 	}

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -37,14 +38,14 @@ func (t *ListIncidentRolesTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListIncidentRolesTool) Execute(args map[string]interface{}) (string, error) {
+func (t *ListIncidentRolesTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	opts := &client.ListIncidentRolesOptions{}
 
 	if pageSize, ok := args["page_size"].(float64); ok {
 		opts.PageSize = int(pageSize)
 	}
 
-	resp, err := t.apiClient.ListIncidentRoles(opts)
+	resp, err := t.apiClient.ListIncidentRoles(ctx, opts)
 	if err != nil {
 		return "", err
 	}
@@ -92,7 +93,7 @@ func (t *ListUsersTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *ListUsersTool) Execute(args map[string]interface{}) (string, error) {
+func (t *ListUsersTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	opts := &client.ListUsersOptions{}
 
 	if pageSize, ok := args["page_size"].(float64); ok {
@@ -103,7 +104,7 @@ func (t *ListUsersTool) Execute(args map[string]interface{}) (string, error) {
 		opts.Email = email
 	}
 
-	resp, err := t.apiClient.ListUsers(opts)
+	resp, err := t.apiClient.ListUsers(ctx, opts)
 	if err != nil {
 		return "", err
 	}
@@ -172,7 +173,7 @@ func (t *AssignIncidentRoleTool) InputSchema() map[string]interface{} {
 	}
 }
 
-func (t *AssignIncidentRoleTool) Execute(args map[string]interface{}) (string, error) {
+func (t *AssignIncidentRoleTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
 	argDetails := make(map[string]interface{})
 	for key, value := range args {
 		argDetails[key] = value
@@ -207,7 +208,7 @@ func (t *AssignIncidentRoleTool) Execute(args map[string]interface{}) (string, e
 		},
 	}
 
-	incident, err := t.apiClient.UpdateIncident(incidentID, req)
+	incident, err := t.apiClient.UpdateIncident(ctx, incidentID, req)
 	if err != nil {
 		return "", err
 	}
