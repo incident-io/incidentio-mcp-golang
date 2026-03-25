@@ -85,9 +85,15 @@ cp .env.example .env
 - `list_incidents` - List incidents with optional filters
 - `get_incident` - Get details of a specific incident
 - `create_incident` - Create a new incident
+- `create_incident_smart` - Create an incident with smart field resolution
 - `update_incident` - Update an existing incident
 - `close_incident` - Close an incident with proper workflow
+- `list_incident_statuses` - List available incident statuses
+- `list_incident_types` - List available incident types
+- `list_incident_updates` - List updates for an incident
+- `get_incident_update` - Get details of a specific incident update
 - `create_incident_update` - Post status updates to incidents
+- `delete_incident_update` - Delete an incident update
 
 ### Follow-up Management
 
@@ -105,14 +111,39 @@ cp .env.example .env
 - `list_alerts` - List alerts with optional filters
 - `get_alert` - Get details of a specific alert
 - `list_incident_alerts` - List connections between incidents and alerts
+- `list_alert_sources` - List available alert sources
 - `create_alert_event` - Create an alert event
-- `list_alert_routes` - List and manage alert routes
+- `list_alert_routes` - List alert routes
+- `get_alert_route` - Get details of a specific alert route
+- `create_alert_route` - Create a new alert route
+- `update_alert_route` - Update an existing alert route
+
+### Escalations
+
+- `list_escalation_paths` - List escalation paths in your account
+- `get_escalation_path` - Get details of a specific escalation path
+- `create_escalation_path` - Create a new escalation path
+- `update_escalation_path` - Update an existing escalation path
+- `destroy_escalation_path` - Delete an escalation path
+- `list_escalations` - List escalations
+- `get_escalation` - Get details of a specific escalation
+- `create_escalation` - Create a new escalation
+
+### Actions
+
+- `list_actions` - List actions with optional filters
+- `get_action` - Get details of a specific action
 
 ### Workflow & Automation
 
 - `list_workflows` - List available workflows
 - `get_workflow` - Get workflow details
 - `update_workflow` - Update workflow configuration
+
+### Severities
+
+- `list_severities` - List available severities
+- `get_severity` - Get details of a specific severity
 
 ### Team & Roles
 
