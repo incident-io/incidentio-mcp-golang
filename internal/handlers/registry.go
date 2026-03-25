@@ -87,6 +87,18 @@ func (r *ToolRegistry) RegisterAlertRouteTools(c *client.Client) {
 	r.RegisterTool("update_alert_route", NewUpdateAlertRouteTool(c))
 }
 
+// RegisterEscalationTools registers on-call escalation paths and escalations (incident.io Escalations V2 API).
+func (r *ToolRegistry) RegisterEscalationTools(c *client.Client) {
+	r.RegisterTool("list_escalation_paths", NewListEscalationPathsTool(c))
+	r.RegisterTool("get_escalation_path", NewGetEscalationPathTool(c))
+	r.RegisterTool("create_escalation_path", NewCreateEscalationPathTool(c))
+	r.RegisterTool("update_escalation_path", NewUpdateEscalationPathTool(c))
+	r.RegisterTool("destroy_escalation_path", NewDestroyEscalationPathTool(c))
+	r.RegisterTool("list_escalations", NewListEscalationsTool(c))
+	r.RegisterTool("get_escalation", NewGetEscalationTool(c))
+	r.RegisterTool("create_escalation", NewCreateEscalationTool(c))
+}
+
 // RegisterAlertSourceTools registers all alert source tools
 func (r *ToolRegistry) RegisterAlertSourceTools(c *client.Client) {
 	r.RegisterTool("list_alert_sources", NewListAlertSourcesTool(c))
@@ -135,6 +147,7 @@ func (r *ToolRegistry) RegisterAllTools(c *client.Client) {
 	r.RegisterRoleTools(c)
 	r.RegisterWorkflowTools(c)
 	r.RegisterAlertRouteTools(c)
+	r.RegisterEscalationTools(c)
 	r.RegisterAlertSourceTools(c)
 	r.RegisterCatalogTools(c)
 	r.RegisterCustomFieldTools(c)
