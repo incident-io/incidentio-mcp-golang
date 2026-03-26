@@ -7,8 +7,14 @@
 
 A GoLang implementation of an MCP (Model Context Protocol) server for incident.io, providing comprehensive tools to interact with the incident.io API. Built following industry-standard Go project layout patterns.
 
-> ⚠️ **Fair warning!** ⚠️  
-> We're experimenting a fair bit in the MCP space, so use at your own risk! 🚀 If you find issues, please raise issues in the repository.
+> [!WARNING]
+> By the end of March 2026, we'll be deprecating this implementation in favour of our new remote MCP server.
+>
+> Read more: https://docs.incident.io/ai/remote-mcp
+> 
+> If you'd like early access ahead of the public release, please get in touch.
+
+---
 
 ## 🚀 Quick Start
 
